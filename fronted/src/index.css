@@ -1,7 +1,9 @@
+
 body {
   margin: 0;
   background-color: #0b1120;
   color: #f8fafc;
+
 }
 
 a {
@@ -64,3 +66,15 @@ a {
   color: #adb5bd !important; /* gris clarito */
   opacity: 1 !important;
 }
+
+/* Forzar texto claro en todo el tema oscuro */
+body, 
+body * {
+  color: #ffffff !important;
+}
+
+/* Excepciones opcionales (links con color propio) */
+a.btn, button.btn {
+  color: inherit !important;
+}
+

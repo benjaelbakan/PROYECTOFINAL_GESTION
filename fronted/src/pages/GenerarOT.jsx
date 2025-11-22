@@ -1,51 +1,73 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function GenerarOT() {
-  // Estados del formulario
+  const navigate = useNavigate();
   const [activoId, setActivoId] = useState("");
   const [tipo, setTipo] = useState("preventiva");
   const [descripcion, setDescripcion] = useState("");
   const [fechaProgramada, setFechaProgramada] = useState("");
+  const [trabajador, setTrabajador] = useState("");
   const [mensaje, setMensaje] = useState(null);
+  const [error, setError] = useState(null);
 
-  const handleSubmit = (e) => {
-    e.preventDefault(); // evita que se recargue la página
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setMensaje(null);
+    setError(null);
 
-    // Objeto OT que enviaríamos al backend
     const nuevaOT = {
       activoId,
       tipo,
       descripcion,
       fechaProgramada,
+      trabajadorAsignado: trabajador,
     };
 
-    console.log("OT a enviar:", nuevaOT);
+    try {
+      const res = await fetch("/api/ot", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(nuevaOT),
+      });
 
-    // de momento solo mostramos un mensaje local
-    setMensaje("OT generada (simulada). Después la enviaremos al backend.");
+      if (!res.ok) {
+        const dataError = await res.json().catch(() => ({}));
+        throw new Error(dataError.message || "Error al guardar la OT");
+      }
 
-    // opcional: limpiar formulario
-    // setActivoId("");
-    // setTipo("preventiva");
-    // setDescripcion("");
-    // setFechaProgramada("");
+      const data = await res.json();
+      console.log("OT creada:", data);
+      setMensaje("Orden de trabajo creada correctamente.");
+      // si quieres limpiar el formulario:
+      // setActivoId("");
+      // setTipo("preventiva");
+      // setDescripcion("");
+      // setFechaProgramada("");
+      // setTrabajador("");
+    } catch (err) {
+      console.error(err);
+      setError(err.message);
+    }
   };
 
   return (
     <div className="container mt-4">
       <h2>Generar Orden de Trabajo</h2>
-      <p className="text-muted">
-        Aquí después conectaremos este formulario con el backend para crear la OT de verdad.
-      </p>
+      <button
+        className="btn btn-outline-info mb-3"
+        onClick={() => navigate("/ot")}
+      >
+        Ver Órdenes de Trabajo
+      </button>
 
-      {mensaje && (
-        <div className="alert alert-success py-2">
-          {mensaje}
-        </div>
-      )}
+      {mensaje && <div className="alert alert-success py-2">{mensaje}</div>}
+      {error && <div className="alert alert-danger py-2">{error}</div>}
 
       <form onSubmit={handleSubmit} className="mt-3">
-        {/* ID o código del activo */}
+        {/* ID / Código del activo */}
         <div className="mb-3">
           <label className="form-label">ID / Código del activo</label>
           <input
@@ -53,7 +75,7 @@ function GenerarOT() {
             className="form-control"
             value={activoId}
             onChange={(e) => setActivoId(e.target.value)}
-            placeholder="Ej: 12, CAM-03, VEH-001..."
+            placeholder="Ej: 1, CAM-03, VEH-001..."
             required
           />
         </div>
@@ -92,6 +114,18 @@ function GenerarOT() {
             onChange={(e) => setDescripcion(e.target.value)}
             placeholder="Ej: Cambio de aceite, revisión frenos, etc."
             required
+          />
+        </div>
+
+        {/* Trabajador asignado */}
+        <div className="mb-3">
+          <label className="form-label">Trabajador asignado</label>
+          <input
+            type="text"
+            className="form-control"
+            value={trabajador}
+            onChange={(e) => setTrabajador(e.target.value)}
+            placeholder="Ej: Juan Pérez"
           />
         </div>
 

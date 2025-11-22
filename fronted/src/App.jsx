@@ -3,6 +3,9 @@ import Activos from "./pages/Activos";
 import CrearActivo from "./pages/CrearActivo";
 import EditarActivo from "./pages/EditarActivo";
 import logoVictor from "./assets/victor-morales-logo.png";
+import GenerarOT from "./pages/GenerarOT";
+import OrdenesTrabajo from "./pages/OrdenesTrabajo.jsx";
+import DetalleOT from "./pages/DetalleOT.jsx";
 
 function App() {
   return (
@@ -44,6 +47,26 @@ function App() {
             >
               Nuevo Activo
             </NavLink>
+
+            <NavLink
+              to="/ot/nueva"
+              className={({ isActive }) =>
+                "btn btn-sm ms-2 " +
+                (isActive ? "btn-success" : "btn-outline-success")
+              }
+            >
+              Generar OT
+            </NavLink>
+
+            <NavLink
+              to="/ot"
+              className={({ isActive }) =>
+                "btn btn-sm ms-2 " +
+                (isActive ? "btn-info text-dark" : "btn-outline-info")
+              }
+            >
+              Lista OT
+            </NavLink>
           </div>
         </div>
       </nav>
@@ -55,6 +78,10 @@ function App() {
             <Route path="/" element={<Activos />} />
             <Route path="/activos/nuevo" element={<CrearActivo />} />
             <Route path="/activos/:id/editar" element={<EditarActivo />} />
+
+            <Route path="/ot/nueva" element={<GenerarOT />} />
+            <Route path="/ot" element={<OrdenesTrabajo />} />
+            <Route path="/ot/:id" element={<DetalleOT />} />
           </Routes>
         </div>
       </main>

@@ -148,3 +148,181 @@ app.delete("/api/activos/:id", async (req, res) => {
   }
 });
 
+// Crear Orden de Trabajo
+app.post("/api/ot", async (req, res) => {
+  try {
+    const {
+      activoId,
+      tipo,
+      descripcion,
+      fechaProgramada,
+      trabajadorAsignado,
+    } = req.body;
+
+    if (!activoId || !tipo || !descripcion) {
+      return res.status(400).json({ message: "Faltan datos obligatorios" });
+    }
+
+    const [result] = await pool.query(
+      `INSERT INTO orden_trabajo 
+        (activo_id, tipo, descripcion, fecha_programada, trabajador_asignado)
+       VALUES (?, ?, ?, ?, ?)`,
+      [
+        activoId,
+        tipo,
+        descripcion,
+        fechaProgramada || null,
+        trabajadorAsignado || null,
+      ]
+    );
+
+    // NUEVO: guardar historial de creación
+    await pool.query(
+      `INSERT INTO ot_historial
+       (ot_id, descripcion_cambio, estado, trabajador_asignado)
+       VALUES (?, ?, ?, ?)`,
+      [
+        result.insertId,
+        "Creación de OT",
+        "pendiente",
+        trabajadorAsignado || null,
+      ]
+    );
+
+    return res.status(201).json({
+      id: result.insertId,
+      activoId,
+      tipo,
+      descripcion,
+      fechaProgramada,
+      trabajadorAsignado,
+      estado: "pendiente",
+      message: "OT creada correctamente",
+    });
+  } catch (error) {
+    console.error("Error al crear OT:", error);
+    return res.status(500).json({ message: "Error al crear OT" });
+  }
+
+  
+});
+
+app.get("/api/ot", async (req, res) => {
+  try {
+    const { estado } = req.query;
+
+    let sql = "SELECT * FROM orden_trabajo";
+    const params = [];
+
+    if (estado) {
+      sql += " WHERE estado = ?";
+      params.push(estado);
+    }
+
+    sql += " ORDER BY id DESC";
+
+    const [rows] = await pool.query(sql, params);
+    res.json(rows);
+  } catch (error) {
+    console.error("Error al listar OT:", error);
+    res
+      .status(500)
+      .json({ message: "Error al obtener las órdenes de trabajo" });
+  }
+});
+
+
+app.put("/api/ot/:id/estado", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { estado, trabajadorAsignado } = req.body;
+
+    const campos = [];
+    const valores = [];
+
+    // Validar estado (si viene)
+    if (estado !== undefined) {
+      const estadosPermitidos = ["pendiente", "en_progreso", "finalizada"];
+      if (!estadosPermitidos.includes(estado)) {
+        return res.status(400).json({ message: "Estado no válido" });
+      }
+      campos.push("estado = ?");
+      valores.push(estado);
+    }
+
+    // Actualizar trabajador (si viene)
+    if (trabajadorAsignado !== undefined) {
+      campos.push("trabajador_asignado = ?");
+      valores.push(trabajadorAsignado);
+    }
+
+    if (campos.length === 0) {
+      return res.status(400).json({ message: "No se enviaron datos para actualizar" });
+    }
+
+    valores.push(id);
+
+    const [result] = await pool.query(
+      `UPDATE orden_trabajo SET ${campos.join(", ")} WHERE id = ?`,
+      valores
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "OT no encontrada" });
+    }
+
+    // 👇 NUEVO: guardar en historial
+    let descripcion = "Actualización de OT:";
+    if (estado !== undefined) descripcion += ` estado -> ${estado}`;
+    if (trabajadorAsignado !== undefined)
+      descripcion += `, trabajador -> ${trabajadorAsignado}`;
+      await pool.query(
+        `INSERT INTO ot_historial
+        (ot_id, descripcion_cambio, estado, trabajador_asignado)
+        VALUES (?, ?, ?, ?)`,
+        [id, descripcion, estado || null, trabajadorAsignado || null]
+      );
+
+    res.json({ message: "OT actualizada correctamente" });
+
+  } catch (error) {
+    console.error("Error al actualizar OT:", error);
+    res.status(500).json({ message: "Error al actualizar OT" });
+  }
+});
+
+app.get("/api/ot/:id/historial", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [rows] = await pool.query(
+      `SELECT * FROM ot_historial
+       WHERE ot_id = ?
+       ORDER BY fecha ASC`,
+      [id]
+    );
+
+    res.json(rows);
+  } catch (error) {
+    console.error("Error al obtener historial de OT:", error);
+    res.status(500).json({ message: "Error al obtener historial de OT" });
+  }
+});
+
+app.get("/api/ot/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [rows] = await pool.query(
+      "SELECT * FROM orden_trabajo WHERE id = ?",
+      [id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "OT no encontrada" });
+    }
+
+    res.json(rows[0]);
+  } catch (error) {
+    console.error("Error al obtener detalle de OT:", error);
+    res.status(500).json({ message: "Error al obtener detalle de OT" });
+  }
+});
