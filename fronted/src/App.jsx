@@ -1,9 +1,10 @@
 // fronted/src/App.jsx
-import { Routes, Route, NavLink } from "react-router-dom";
+import { BrowserRouter, Routes, Route, NavLink, Link } from "react-router-dom";
 import Activos from "./pages/Activos";
 import CrearActivo from "./pages/CrearActivo";
 import EditarActivo from "./pages/EditarActivo";
 import logoVictor from "./assets/victor-morales-logo.png";
+import GenerarOT from "./pages/GenerarOT";
 
 function App() {
   return (
@@ -44,6 +45,14 @@ function App() {
             >
               Nuevo Activo
             </NavLink>
+            
+
+            <NavLink
+              to="/ot/nueva"
+              className="btn btn-outline-success btn-sm ms-2"
+            >
+              Generar OT
+            </NavLink>
           </div>
         </div>
       </nav>
@@ -55,11 +64,15 @@ function App() {
             <Route path="/" element={<Activos />} />
             <Route path="/activos/nuevo" element={<CrearActivo />} />
             <Route path="/activos/:id/editar" element={<EditarActivo />} />
+            <Route path="/ot/nueva" element={<GenerarOT />} />
           </Routes>
         </div>
       </main>
     </div>
+    
+    
   );
 }
+
 
 export default App;

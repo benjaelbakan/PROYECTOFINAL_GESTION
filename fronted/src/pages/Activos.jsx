@@ -1,6 +1,6 @@
 // fronted/src/pages/Activos.jsx
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate  } from "react-router-dom";
 import axios from "axios";
 
 function Activos() {
@@ -46,6 +46,21 @@ function Activos() {
     }
   };
 
+    function HeaderActivos() {
+    return (
+      <div className="encabezado">
+        {/* pestañas o botones */}
+        <div style={{ display: "flex", gap: "8px" }}>
+          <Link to="/">
+            <button>Activos</button>
+          </Link>
+
+          
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="row justify-content-center">
       <div className="col-12">
@@ -59,8 +74,10 @@ function Activos() {
               >
                 + Nuevo Activo
               </button>
-            </div>
 
+              
+            </div>
+              
             {errorMsg && (
               <div className="alert alert-danger py-2">{errorMsg}</div>
             )}
@@ -108,6 +125,7 @@ function Activos() {
                         </td>
                       </tr>
                     ))}
+                    
                   </tbody>
                 </table>
               </div>
