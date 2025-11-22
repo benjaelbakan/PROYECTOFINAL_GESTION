@@ -12,33 +12,36 @@ function Activos() {
   const [errorMsg, setErrorMsg] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Ordenamiento
+  // ordenamiento
   const [sortField, setSortField] = useState("id");
   const [sortOrder, setSortOrder] = useState("asc");
 
-  // Paginación
+  // paginación
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  // Modal eliminar
+  // modal eliminar
   const [showConfirm, setShowConfirm] = useState(false);
   const [activoAEliminar, setActivoAEliminar] = useState(null);
 
   const navigate = useNavigate();
 
-  // Cargar datos
   const cargarActivos = () => {
     setLoading(true);
     setErrorMsg("");
 
     axios
       .get("/api/activos")
-      .then((res) => setActivos(res.data))
+      .then((res) => {
+        setActivos(res.data);
+      })
       .catch((err) => {
         console.error("Error al cargar activos:", err);
         setErrorMsg("No se pudieron cargar los activos.");
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+      });
   };
 
   useEffect(() => {
@@ -49,7 +52,6 @@ function Activos() {
   const activosFiltradosYOrdenados = useMemo(() => {
     let data = [...activos];
 
-    // Filtro
     if (searchTerm.trim() !== "") {
       const term = searchTerm.toLowerCase();
       data = data.filter(
@@ -62,7 +64,6 @@ function Activos() {
       );
     }
 
-    // Orden
     data.sort((a, b) => {
       const dir = sortOrder === "asc" ? 1 : -1;
       const vA = a[sortField];
@@ -75,7 +76,6 @@ function Activos() {
       if (typeof vA === "number" && typeof vB === "number") {
         return (vA - vB) * dir;
       }
-
       return String(vA).localeCompare(String(vB)) * dir;
     });
 
@@ -87,8 +87,8 @@ function Activos() {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
   const currentPageSafe = Math.min(currentPage, totalPages);
-  const startIndex = totalItems === 0 ? 0 : (currentPageSafe - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
+  const startIndex = (currentPageSafe - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalItems);
 
   const activosPagina = activosFiltradosYOrdenados.slice(
     startIndex,
@@ -164,6 +164,7 @@ function Activos() {
     const worksheet = XLSX.utils.json_to_sheet(datos);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Activos");
+
     XLSX.writeFile(workbook, "activos_biotrans.xlsx");
   };
 
@@ -196,7 +197,7 @@ function Activos() {
       head,
       body,
       theme: "grid",
-      headStyles: { fillColor: [33, 150, 243] }, // azul
+      headStyles: { fillColor: [33, 150, 243] },
     });
 
     doc.save("activos_biotrans.pdf");
@@ -207,7 +208,7 @@ function Activos() {
       <div className="col-12">
         <div className="card bg-dark border-secondary shadow-sm">
           <div className="card-body">
-            {/* HEADER */}
+            {/* Título, exportar, nuevo */}
             <div className="d-flex justify-content-between align-items-center mb-3">
               <h5 className="card-title mb-0 text-light">
                 Activos registrados
@@ -264,7 +265,6 @@ function Activos() {
               <p className="text-muted mb-0">No hay activos registrados.</p>
             ) : (
               <>
-                {/* TABLA */}
                 <div className="table-responsive">
                   <table className="table table-dark table-hover table-sm align-middle mb-0">
                     <thead>
@@ -338,24 +338,15 @@ function Activos() {
                   </table>
                 </div>
 
-                {/* PAGINACIÓN */}
+                {/* Paginación */}
                 <div className="d-flex justify-content-between align-items-center mt-3">
-                  <p
-                    className="small mb-0"
-                    style={{ color: "rgba(255,255,255,0.75)" }}
-                  >
-                    Mostrando{" "}
-                    {totalItems === 0
-                      ? 0
-                      : `${startIndex + 1}-${Math.min(
-                          endIndex,
-                          totalItems
-                        )}`}{" "}
-                    de {totalItems} registros
+                  <p className="small text-muted mb-0">
+                    Mostrando {startIndex + 1}-{endIndex} de {totalItems}{" "}
+                    registros
                   </p>
 
                   <div className="d-flex align-items-center gap-2">
-                    <label className="small mb-0 text-light me-2">
+                    <label className="small text-muted me-1 mb-0">
                       Filas por página:
                     </label>
                     <select
@@ -371,19 +362,23 @@ function Activos() {
                     <button
                       className="btn btn-outline-light btn-sm"
                       disabled={currentPageSafe === 1}
-                      onClick={() => handlePageChange(currentPageSafe - 1)}
+                      onClick={() =>
+                        handlePageChange(currentPageSafe - 1)
+                      }
                     >
                       «
                     </button>
 
-                    <span className="small text-light">
+                    <span className="small text-muted">
                       Página {currentPageSafe} de {totalPages}
                     </span>
 
                     <button
                       className="btn btn-outline-light btn-sm"
                       disabled={currentPageSafe === totalPages}
-                      onClick={() => handlePageChange(currentPageSafe + 1)}
+                      onClick={() =>
+                        handlePageChange(currentPageSafe + 1)
+                      }
                     >
                       »
                     </button>
@@ -392,7 +387,7 @@ function Activos() {
               </>
             )}
 
-            {/* MODAL CONFIRMACIÓN */}
+            {/* Modal de confirmación */}
             {showConfirm && activoAEliminar && (
               <div
                 className="modal fade show"
@@ -404,7 +399,9 @@ function Activos() {
                 <div className="modal-dialog">
                   <div className="modal-content bg-dark text-light border-secondary">
                     <div className="modal-header border-secondary">
-                      <h5 className="modal-title">Confirmar eliminación</h5>
+                      <h5 className="modal-title">
+                        Confirmar eliminación
+                      </h5>
                       <button
                         type="button"
                         className="btn-close btn-close-white"
@@ -415,9 +412,13 @@ function Activos() {
                       <p className="mb-1">
                         ¿Seguro que quieres eliminar el activo{" "}
                         <strong>{activoAEliminar.codigo}</strong> (
-                        {activoAEliminar.marca} {activoAEliminar.modelo})?
+                        {activoAEliminar.marca}{" "}
+                        {activoAEliminar.modelo})?
                       </p>
-                      <p className="text-white-50 mb-0">
+                      <p
+                        className="small"
+                        style={{ color: "rgba(255,255,255,0.75)" }}
+                      >
                         Esta acción no se puede deshacer.
                       </p>
                     </div>

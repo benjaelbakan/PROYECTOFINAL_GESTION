@@ -11,6 +11,7 @@ function App() {
       {/* NAVBAR */}
       <nav className="navbar navbar-dark bg-dark border-bottom border-secondary">
         <div className="container d-flex justify-content-between">
+          {/* Logo + nombre */}
           <div className="navbar-brand d-flex align-items-center">
             <img
               src={logoVictor}
@@ -25,6 +26,7 @@ function App() {
             </div>
           </div>
 
+          {/* Botones de navegación */}
           <div>
             <NavLink
               to="/"
@@ -35,7 +37,7 @@ function App() {
             >
               Activos
             </NavLink>
-            {/*<NavLink
+            <NavLink
               to="/activos/nuevo"
               className={({ isActive }) =>
                 "btn btn-sm " +
@@ -43,7 +45,7 @@ function App() {
               }
             >
               Nuevo Activo
-            </NavLink>*/}
+            </NavLink>
           </div>
         </div>
       </nav>
