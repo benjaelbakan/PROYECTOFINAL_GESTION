@@ -1,4 +1,3 @@
-// fronted/src/App.jsx
 import { Routes, Route, NavLink } from "react-router-dom";
 import Activos from "./pages/Activos";
 import CrearActivo from "./pages/CrearActivo";
@@ -11,7 +10,6 @@ function App() {
       {/* NAVBAR */}
       <nav className="navbar navbar-dark bg-dark border-bottom border-secondary">
         <div className="container d-flex justify-content-between">
-          {/* Logo + nombre */}
           <div className="navbar-brand d-flex align-items-center">
             <img
               src={logoVictor}
@@ -26,7 +24,6 @@ function App() {
             </div>
           </div>
 
-          {/* Botones de navegación */}
           <div>
             <NavLink
               to="/"
@@ -37,6 +34,7 @@ function App() {
             >
               Activos
             </NavLink>
+
             <NavLink
               to="/activos/nuevo"
               className={({ isActive }) =>
