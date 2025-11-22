@@ -1,150 +1,41 @@
 const express = require("express");
 const cors = require("cors");
-const pool = require("./db");
+
+// --- 1. IMPORTAMOS TUS RUTAS (LOS MÓDULOS) ---
+// Aquí traemos los archivos que creaste en la carpeta 'routes'
+const activosRoutes = require('./routes/RF01_activos.routes'); // Gestión de Activos (Lo viejo)
+const tareasRoutes = require('./routes/RF04_tareas.routes');   // RF04: Gestión de Tareas (Lo nuevo)
 
 const app = express();
 
-app.use(cors({
-  origin: "*"
-}));
+// --- 2. CONFIGURACIONES GENERALES ---
+app.use(cors({ origin: "*" })); // Permite que el frontend (React) se conecte sin problemas
+app.use(express.json());        // Permite que el servidor entienda datos en formato JSON
 
-app.use(express.json());
-
-// Ruta de prueba
+// --- 3. RUTA DE PRUEBA (Para verificar que el servidor vive) ---
 app.get("/", (req, res) => {
-  res.send("API de mantenimiento funcionando 😎");
-  });
-
-  // Listar activos
-  app.get("/api/activos", async (req, res) => {
-    try {
-        const [rows] = await pool.query("SELECT * FROM activos");
-            res.json(rows);
-              } catch (err) {
-                  console.error("Error al obtener activos:", err);
-                      res.status(500).json({ message: "Error al obtener activos" });
-                        }
-                        });
-
-                        // Crear activo
-                        app.post("/api/activos", async (req, res) => {
-                          try {
-                              const {
-                                    codigo,
-                                          tipo,
-                                                marca,
-                                                      modelo,
-                                                            anio,
-                                                                  kilometraje_actual,
-                                                                        horas_uso_actual,
-                                                                              ubicacion
-                                                                                  } = req.body;
-
-                                                                                      const [result] = await pool.query(
-                                                                                            `INSERT INTO activos
-                                                                                                   (codigo, tipo, marca, modelo, anio, kilometraje_actual, horas_uso_actual, ubicacion)
-                                                                                                          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                                                                                                                [
-                                                                                                                        codigo,
-                                                                                                                                tipo,
-                                                                                                                                        marca,
-                                                                                                                                                modelo,
-                                                                                                                                                        anio,
-                                                                                                                                                                kilometraje_actual,
-                                                                                                                                                                        horas_uso_actual,
-                                                                                                                                                                                ubicacion
-                                                                                                                                                                                      ]
-                                                                                                                                                                                          );
-
-                                                                                                                                                                                              res.status(201).json({ id: result.insertId, message: "Activo creado correctamente" });
-                                                                                                                                                                                                } catch (err) {
-                                                                                                                                                                                                    console.error("Error al crear activo:", err);
-                                                                                                                                                                                                        res.status(500).json({ message: "Error al crear activo" });
-                                                                                                                                                                                                          }
-                                                                                                                                                                                                          });
-
-                                                                                                                                                                                                          const PORT = process.env.PORT || 3001;
-                                                                                                                                                                                                          app.listen(PORT, () => {
-                                                                                                                                                                                                            console.log(`Backend corriendo en puerto ${PORT}`);
-                                                                                                                                                                                                            });
-
-                                                                                                                                                                                                          
-// Obtener un activo por ID
-app.get("/api/activos/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const [rows] = await pool.query("SELECT * FROM activos WHERE id = ?", [id]);
-
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "Activo no encontrado" });
-    }
-
-    res.json(rows[0]);
-  } catch (err) {
-    console.error("Error al obtener activo:", err);
-    res.status(500).json({ message: "Error al obtener activo" });
-  }
+  res.send("API de Mantenimiento Funcionando 🚀");
 });
 
-// Actualizar un activo
-app.put("/api/activos/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const {
-      codigo,
-      tipo,
-      marca,
-      modelo,
-      anio,
-      kilometraje_actual,
-      horas_uso_actual,
-      ubicacion,
-    } = req.body;
+// ==========================================
+//   CONEXIÓN DE RUTAS (ENRUTADOR)
+// ==========================================
 
-    const [result] = await pool.query(
-      `UPDATE activos
-       SET codigo = ?, tipo = ?, marca = ?, modelo = ?, anio = ?, 
-           kilometraje_actual = ?, horas_uso_actual = ?, ubicacion = ?
-       WHERE id = ?`,
-      [
-        codigo,
-        tipo,
-        marca,
-        modelo,
-        anio,
-        kilometraje_actual,
-        horas_uso_actual,
-        ubicacion,
-        id,
-      ]
-    );
+// A. Rutas de Activos
+// Cualquier petición a "/api/activos" será manejada por el archivo activos.routes.js
+app.use('/api/activos', activosRoutes);
 
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: "Activo no encontrado" });
-    }
+// B. Rutas de Tareas (RF04)
+// Cualquier petición a "/api/tareas" será manejada por el archivo tareas.routes.js
+app.use('/api/tareas', tareasRoutes);
 
-    res.json({ message: "Activo actualizado correctamente" });
-  } catch (err) {
-    console.error("Error al actualizar activo:", err);
-    res.status(500).json({ message: "Error al actualizar activo" });
-  }
+
+// ==========================================
+//   INICIO DEL SERVIDOR (SERVER START)
+// ==========================================
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+  console.log(`✅ Servidor Backend corriendo en puerto ${PORT}`);
+  console.log(`   👉 API Activos: http://localhost:${PORT}/api/activos`);
+  console.log(`   👉 API Tareas:  http://localhost:${PORT}/api/tareas`);
 });
-
-// Eliminar un activo
-app.delete("/api/activos/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const [result] = await pool.query("DELETE FROM activos WHERE id = ?", [id]);
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: "Activo no encontrado" });
-    }
-
-    res.json({ message: "Activo eliminado correctamente" });
-  } catch (err) {
-    console.error("Error al eliminar activo:", err);
-    res.status(500).json({ message: "Error al eliminar activo" });
-  }
-});
-
