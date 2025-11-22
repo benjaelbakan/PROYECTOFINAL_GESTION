@@ -30,3 +30,37 @@ a {
   font-size: 0.9rem;
   font-weight: 500;
 }
+/* ============================
+   MODAL DARK MODE FIX
+   ============================ */
+.modal-content {
+  background-color: #1e1e1e !important; /* Fondo oscuro */
+  color: #ffffff !important;            /* Texto blanco */
+  border: 1px solid #444 !important;
+}
+
+.modal-header,
+.modal-body,
+.modal-footer {
+  background-color: #1e1e1e !important;
+  color: #ffffff !important;
+}
+
+/* Botón de cerrar (X) */
+.btn-close {
+  filter: invert(1); /* Lo vuelve blanco */
+}
+
+.modal-title {
+  color: #ffffff !important;
+}
+
+.modal-body p {
+  color: #dddddd !important;
+  font-size: 1rem;
+}
+/* Hace visible el texto dentro del input en modo oscuro */
+.form-control::placeholder {
+  color: #adb5bd !important; /* gris clarito */
+  opacity: 1 !important;
+}

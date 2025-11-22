@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 
+const TEXTO_REGEX = /^[A-Za-zÁÉÍÓÚáéíóúÑñ0-9\s-]+$/;
+
 function EditarActivo() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -53,7 +55,6 @@ function EditarActivo() {
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    // Evitar números negativos en km/horas
     if (
       (name === "kilometraje_actual" || name === "horas_uso_actual") &&
       value.startsWith("-")
@@ -70,14 +71,24 @@ function EditarActivo() {
 
     if (!form.codigo.trim()) newErrors.codigo = "El código es obligatorio.";
     if (!form.tipo) newErrors.tipo = "Debes seleccionar un tipo.";
-    if (!form.marca.trim() || form.marca.trim().length < 2)
+
+    if (!form.marca.trim() || form.marca.trim().length < 2) {
       newErrors.marca = "La marca debe tener al menos 2 caracteres.";
-    if (!form.modelo.trim() || form.modelo.trim().length < 2)
+    } else if (!TEXTO_REGEX.test(form.marca.trim())) {
+      newErrors.marca =
+        "La marca solo puede contener letras, números, espacios y guiones.";
+    }
+
+    if (!form.modelo.trim() || form.modelo.trim().length < 2) {
       newErrors.modelo = "El modelo debe tener al menos 2 caracteres.";
+    } else if (!TEXTO_REGEX.test(form.modelo.trim())) {
+      newErrors.modelo =
+        "El modelo solo puede contener letras, números, espacios y guiones.";
+    }
 
     if (form.anio !== "") {
       const anioNum = Number(form.anio);
-      if (Number.isNaN(anioNum)) {
+      if (isNaN(anioNum)) {
         newErrors.anio = "El año debe ser numérico.";
       } else if (anioNum < 1900 || anioNum > currentYear + 1) {
         newErrors.anio = `El año debe estar entre 1900 y ${currentYear + 1}.`;
@@ -86,7 +97,7 @@ function EditarActivo() {
 
     if (form.kilometraje_actual !== "") {
       const km = Number(form.kilometraje_actual);
-      if (Number.isNaN(km) || km < 0) {
+      if (isNaN(km) || km < 0) {
         newErrors.kilometraje_actual =
           "El kilometraje debe ser un número mayor o igual a 0.";
       }
@@ -94,7 +105,7 @@ function EditarActivo() {
 
     if (form.horas_uso_actual !== "") {
       const h = Number(form.horas_uso_actual);
-      if (Number.isNaN(h) || h < 0) {
+      if (isNaN(h) || h < 0) {
         newErrors.horas_uso_actual =
           "Las horas de uso deben ser un número mayor o igual a 0.";
       }
@@ -113,6 +124,23 @@ function EditarActivo() {
     setSaving(true);
 
     try {
+      // Validar código duplicado (ignorando el propio id)
+      const { data: lista } = await axios.get("/api/activos");
+      const existeCodigo = lista.some(
+        (a) =>
+          a.id !== Number(id) &&
+          a.codigo?.trim().toLowerCase() ===
+            form.codigo.trim().toLowerCase()
+      );
+      if (existeCodigo) {
+        setErrors((prev) => ({
+          ...prev,
+          codigo: "Ya existe otro activo con este código.",
+        }));
+        setSaving(false);
+        return;
+      }
+
       const payload = {
         ...form,
         anio: form.anio ? Number(form.anio) : null,
@@ -135,27 +163,14 @@ function EditarActivo() {
   };
 
   if (loading) {
-    return (
-      <div className="container mt-4">
-        <div className="row justify-content-center">
-          <div className="col-lg-6">
-            <div className="card bg-dark border-secondary shadow-sm">
-              <div className="card-body">
-                <p className="mb-0">Cargando activo...</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <div style={{ padding: "40px" }}>Cargando activo...</div>;
   }
 
   return (
     <div className="container mt-4">
-      {/* Título + botón volver */}
       <div className="row justify-content-center mb-3">
         <div className="col-lg-8 col-xl-7 d-flex justify-content-between align-items-center">
-          <h4 className="mb-0">Editar activo #{id}</h4>
+          <h4 className="mb-0">Editar Activo #{id}</h4>
           <button
             className="btn btn-outline-light btn-sm"
             type="button"
@@ -166,18 +181,14 @@ function EditarActivo() {
         </div>
       </div>
 
-      {/* Card del formulario */}
       <div className="row justify-content-center">
         <div className="col-lg-8 col-xl-7">
-          {errorMsg && (
-            <div className="alert alert-danger py-2 mb-3">{errorMsg}</div>
-          )}
+          {errorMsg && <div className="alert alert-danger py-2">{errorMsg}</div>}
 
           <div className="card bg-dark border-secondary shadow-sm">
             <div className="card-body">
               <form onSubmit={handleSubmit}>
                 <div className="row g-3">
-                  {/* Código */}
                   <div className="col-md-6">
                     <label className="form-label" htmlFor="codigo">
                       Código *
@@ -196,7 +207,6 @@ function EditarActivo() {
                     )}
                   </div>
 
-                  {/* Tipo */}
                   <div className="col-md-6">
                     <label className="form-label" htmlFor="tipo">
                       Tipo *
@@ -218,7 +228,6 @@ function EditarActivo() {
                     )}
                   </div>
 
-                  {/* Marca */}
                   <div className="col-md-6">
                     <label className="form-label" htmlFor="marca">
                       Marca *
@@ -237,7 +246,6 @@ function EditarActivo() {
                     )}
                   </div>
 
-                  {/* Modelo */}
                   <div className="col-md-6">
                     <label className="form-label" htmlFor="modelo">
                       Modelo *
@@ -256,7 +264,6 @@ function EditarActivo() {
                     )}
                   </div>
 
-                  {/* Año */}
                   <div className="col-md-4">
                     <label className="form-label" htmlFor="anio">
                       Año
@@ -276,7 +283,6 @@ function EditarActivo() {
                     )}
                   </div>
 
-                  {/* Kilometraje actual */}
                   <div className="col-md-4">
                     <label
                       className="form-label"
@@ -299,9 +305,11 @@ function EditarActivo() {
                     )}
                   </div>
 
-                  {/* Horas de uso actuales */}
                   <div className="col-md-4">
-                    <label className="form-label" htmlFor="horas_uso_actual">
+                    <label
+                      className="form-label"
+                      htmlFor="horas_uso_actual"
+                    >
                       Horas de uso actuales
                     </label>
                     <input
@@ -319,7 +327,6 @@ function EditarActivo() {
                     )}
                   </div>
 
-                  {/* Ubicación */}
                   <div className="col-12">
                     <label className="form-label" htmlFor="ubicacion">
                       Ubicación

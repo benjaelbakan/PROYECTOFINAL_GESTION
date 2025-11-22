@@ -3,6 +3,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
+const TEXTO_REGEX = /^[A-Za-zÁÉÍÓÚáéíóúÑñ0-9\s-]+$/;
+
 function CrearActivo() {
   const navigate = useNavigate();
 
@@ -22,7 +24,6 @@ function CrearActivo() {
   const [successMsg, setSuccessMsg] = useState("");
   const [errors, setErrors] = useState({});
 
-  // Handlers
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -35,17 +36,26 @@ function CrearActivo() {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Validaciones
   const validateForm = () => {
     const newErrors = {};
     const currentYear = new Date().getFullYear();
 
     if (!form.codigo.trim()) newErrors.codigo = "El código es obligatorio.";
     if (!form.tipo) newErrors.tipo = "Debes seleccionar un tipo.";
-    if (!form.marca.trim() || form.marca.trim().length < 2)
+
+    if (!form.marca.trim() || form.marca.trim().length < 2) {
       newErrors.marca = "La marca debe tener al menos 2 caracteres.";
-    if (!form.modelo.trim() || form.modelo.trim().length < 2)
+    } else if (!TEXTO_REGEX.test(form.marca.trim())) {
+      newErrors.marca =
+        "La marca solo puede contener letras, números, espacios y guiones.";
+    }
+
+    if (!form.modelo.trim() || form.modelo.trim().length < 2) {
       newErrors.modelo = "El modelo debe tener al menos 2 caracteres.";
+    } else if (!TEXTO_REGEX.test(form.modelo.trim())) {
+      newErrors.modelo =
+        "El modelo solo puede contener letras, números, espacios y guiones.";
+    }
 
     if (form.anio !== "") {
       const anioNum = Number(form.anio);
@@ -76,7 +86,6 @@ function CrearActivo() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
@@ -86,6 +95,22 @@ function CrearActivo() {
 
     setLoading(true);
     try {
+      // Validar código duplicado
+      const { data: lista } = await axios.get("/api/activos");
+      const existeCodigo = lista.some(
+        (a) =>
+          a.codigo?.trim().toLowerCase() ===
+          form.codigo.trim().toLowerCase()
+      );
+      if (existeCodigo) {
+        setErrors((prev) => ({
+          ...prev,
+          codigo: "Ya existe un activo con este código.",
+        }));
+        setLoading(false);
+        return;
+      }
+
       const payload = {
         ...form,
         anio: form.anio ? Number(form.anio) : null,
@@ -100,7 +125,7 @@ function CrearActivo() {
       await axios.post("/api/activos", payload);
       setSuccessMsg("Activo registrado correctamente ✅");
 
-      setTimeout(() => navigate("/"), 700);
+      setTimeout(() => navigate("/"), 800);
     } catch (err) {
       console.error("Error al registrar activo:", err);
       setErrorMsg("Error al registrar el activo. Revisa los datos.");
@@ -111,7 +136,6 @@ function CrearActivo() {
 
   return (
     <div className="container mt-4">
-      {/* Título + botón volver */}
       <div className="row justify-content-center mb-3">
         <div className="col-lg-8 col-xl-7 d-flex justify-content-between align-items-center">
           <h4 className="mb-0">Nuevo Activo</h4>
@@ -125,7 +149,6 @@ function CrearActivo() {
         </div>
       </div>
 
-      {/* Card */}
       <div className="row justify-content-center">
         <div className="col-lg-8 col-xl-7">
           {errorMsg && <div className="alert alert-danger py-2">{errorMsg}</div>}
@@ -137,7 +160,6 @@ function CrearActivo() {
             <div className="card-body">
               <form onSubmit={handleSubmit}>
                 <div className="row g-3">
-                  {/* Código */}
                   <div className="col-md-6">
                     <label className="form-label" htmlFor="codigo">
                       Código *
@@ -156,7 +178,6 @@ function CrearActivo() {
                     )}
                   </div>
 
-                  {/* Tipo */}
                   <div className="col-md-6">
                     <label className="form-label" htmlFor="tipo">
                       Tipo *
@@ -172,11 +193,12 @@ function CrearActivo() {
                       <option value="MAQUINARIA">Maquinaria</option>
                     </select>
                     {errors.tipo && (
-                      <div className="text-danger small mt-1">{errors.tipo}</div>
+                      <div className="text-danger small mt-1">
+                        {errors.tipo}
+                      </div>
                     )}
                   </div>
 
-                  {/* Marca */}
                   <div className="col-md-6">
                     <label className="form-label" htmlFor="marca">
                       Marca *
@@ -195,7 +217,6 @@ function CrearActivo() {
                     )}
                   </div>
 
-                  {/* Modelo */}
                   <div className="col-md-6">
                     <label className="form-label" htmlFor="modelo">
                       Modelo *
@@ -214,7 +235,6 @@ function CrearActivo() {
                     )}
                   </div>
 
-                  {/* Año */}
                   <div className="col-md-4">
                     <label className="form-label" htmlFor="anio">
                       Año
@@ -234,7 +254,6 @@ function CrearActivo() {
                     )}
                   </div>
 
-                  {/* Kilometraje */}
                   <div className="col-md-4">
                     <label
                       className="form-label"
@@ -257,7 +276,6 @@ function CrearActivo() {
                     )}
                   </div>
 
-                  {/* Horas */}
                   <div className="col-md-4">
                     <label
                       className="form-label"
@@ -280,7 +298,6 @@ function CrearActivo() {
                     )}
                   </div>
 
-                  {/* Ubicación */}
                   <div className="col-12">
                     <label className="form-label" htmlFor="ubicacion">
                       Ubicación
@@ -298,7 +315,7 @@ function CrearActivo() {
                 <div className="mt-3">
                   <button
                     type="submit"
-                    className="btn btn-success btn-sm"
+                    className="btn btn_SUCCESS btn-sm btn-success"
                     disabled={loading}
                   >
                     {loading ? "Guardando..." : "Guardar activo"}

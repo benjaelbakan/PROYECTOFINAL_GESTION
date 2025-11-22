@@ -35,7 +35,7 @@ function App() {
             >
               Activos
             </NavLink>
-            <NavLink
+            {/*<NavLink
               to="/activos/nuevo"
               className={({ isActive }) =>
                 "btn btn-sm " +
@@ -43,7 +43,7 @@ function App() {
               }
             >
               Nuevo Activo
-            </NavLink>
+            </NavLink>*/}
           </div>
         </div>
       </nav>
