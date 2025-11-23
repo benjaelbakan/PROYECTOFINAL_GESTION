@@ -11,7 +11,7 @@ function ListaTareas() {
 
   const cargarTareas = async () => {
     try {
-      const res = await axios.get('http://localhost:3001/api/tareas');
+      const res = await axios.get("http://localhost:3001/api/RF04_tareas")
       setTareas(res.data);
     } catch (error) {
       console.error("Error cargando tareas", error);

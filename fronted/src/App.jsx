@@ -9,6 +9,10 @@ import logoVictor from "./assets/victor-morales-logo.png";
 import RegistroTarea from "./pages/RF04_RegistroTarea"; 
 import ListaTareas from "./pages/RF04_ListaTareas";
 
+//IMPORTAMOS COMPONENTE RF07
+import RF07_KPI from "./pages/RF07_kpi.jsx";
+
+
 function App() {
   return (
     <div className="bg-dark min-vh-100 text-light">
@@ -74,6 +78,15 @@ function App() {
             >
               🛠️ Tareas
             </NavLink>
+            
+            <NavLink
+              to="/kpi"
+              className={({ isActive }) =>
+                "btn btn-sm me-2 " + (isActive ? "btn-primary" : "btn-outline-primary")
+              }
+            >
+              📊 KPI
+            </NavLink>
 
           </div>
         </div>
@@ -89,10 +102,14 @@ function App() {
             <Route path="/activos/:id/editar" element={<EditarActivo />} />
             <Route path="/ot/nueva" element={<GenerarOT />} />
 
-            {/* --- NUEVA RUTA PARA RF04 (TU TRABAJO) --- */}
+            {/* --- NUEVA RUTA PARA RF04 --- */}
             {/* Cuando la URL sea /tareas/registro, carga tu componente */}
             <Route path="/tareas/registro" element={<RegistroTarea />} />
             <Route path="/tareas/lista" element={<ListaTareas />} />
+            
+            {/* --- NUEVA RUTA PARA RF07  --- */}
+            <Route path="/kpi" element={<RF07_KPI />} />
+
           </Routes>
         </div>
       </main>

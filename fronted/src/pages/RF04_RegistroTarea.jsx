@@ -27,7 +27,7 @@ function RegistroTarea() {
     setMensaje(null);
 
     try {
-      const respuesta = await axios.post('http://localhost:3001/api/tareas', formulario);
+      const respuesta = await axios.post('http://localhost:3001/api/RF04_tareas', formulario);
       
       setMensaje({ tipo: 'success', texto: '✅ Tarea registrada correctamente ID: ' + respuesta.data.id });
 
@@ -42,7 +42,7 @@ function RegistroTarea() {
   // 👇 FUNCIÓN PARA OBTENER LISTADO DE TAREAS
   const cargarTareas = async () => {
     try {
-      const respuesta = await axios.get('http://localhost:3001/api/tareas');
+      const respuesta = await axios.get('http://localhost:3001/api/RF04_tareas');
       setTareas(respuesta.data);
       setVerTareas(true);
     } catch (error) {
