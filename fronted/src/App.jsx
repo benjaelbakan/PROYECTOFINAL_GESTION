@@ -6,6 +6,7 @@ import logoVictor from "./assets/victor-morales-logo.png";
 import GenerarOT from "./pages/GenerarOT";
 import OrdenesTrabajo from "./pages/OrdenesTrabajo.jsx";
 import DetalleOT from "./pages/DetalleOT.jsx";
+import Planificacion from "./pages/Planificacion";
 
 function App() {
   return (
@@ -67,6 +68,17 @@ function App() {
             >
               Lista OT
             </NavLink>
+
+            {/* NUEVO: botón para Planificación */}
+            <NavLink
+              to="/planificacion"
+              className={({ isActive }) =>
+                "btn btn-sm ms-2 " +
+                (isActive ? "btn-warning text-dark" : "btn-outline-warning")
+              }
+            >
+              Planificación
+            </NavLink>
           </div>
         </div>
       </nav>
@@ -78,7 +90,7 @@ function App() {
             <Route path="/" element={<Activos />} />
             <Route path="/activos/nuevo" element={<CrearActivo />} />
             <Route path="/activos/:id/editar" element={<EditarActivo />} />
-
+            <Route path="/planificacion" element={<Planificacion />} />
             <Route path="/ot/nueva" element={<GenerarOT />} />
             <Route path="/ot" element={<OrdenesTrabajo />} />
             <Route path="/ot/:id" element={<DetalleOT />} />

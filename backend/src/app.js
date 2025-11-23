@@ -1,79 +1,85 @@
 const express = require("express");
 const cors = require("cors");
 const pool = require("./db");
+const planesRoutes = require("./routes/planes");
 
 const app = express();
 
-app.use(cors({
-  origin: "*"
-}));
-
+// Middlewares
+app.use(
+  cors({
+    origin: "*",
+  })
+);
 app.use(express.json());
+
+// Rutas montadas con routers externos
+app.use("/api/planes", planesRoutes);
 
 // Ruta de prueba
 app.get("/", (req, res) => {
   res.send("API de mantenimiento funcionando 😎");
-  });
+});
 
-  // Listar activos
-  app.get("/api/activos", async (req, res) => {
-    try {
-        const [rows] = await pool.query("SELECT * FROM activos");
-            res.json(rows);
-              } catch (err) {
-                  console.error("Error al obtener activos:", err);
-                      res.status(500).json({ message: "Error al obtener activos" });
-                        }
-                        });
+// ====================== ACTIVOS ======================
 
-                        // Crear activo
-                        app.post("/api/activos", async (req, res) => {
-                          try {
-                              const {
-                                    codigo,
-                                          tipo,
-                                                marca,
-                                                      modelo,
-                                                            anio,
-                                                                  kilometraje_actual,
-                                                                        horas_uso_actual,
-                                                                              ubicacion
-                                                                                  } = req.body;
+// Listar activos
+app.get("/api/activos", async (req, res) => {
+  try {
+    const [rows] = await pool.query("SELECT * FROM activos");
+    res.json(rows);
+  } catch (err) {
+    console.error("Error al obtener activos:", err);
+    res.status(500).json({ message: "Error al obtener activos" });
+  }
+});
 
-                                                                                      const [result] = await pool.query(
-                                                                                            `INSERT INTO activos
-                                                                                                   (codigo, tipo, marca, modelo, anio, kilometraje_actual, horas_uso_actual, ubicacion)
-                                                                                                          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                                                                                                                [
-                                                                                                                        codigo,
-                                                                                                                                tipo,
-                                                                                                                                        marca,
-                                                                                                                                                modelo,
-                                                                                                                                                        anio,
-                                                                                                                                                                kilometraje_actual,
-                                                                                                                                                                        horas_uso_actual,
-                                                                                                                                                                                ubicacion
-                                                                                                                                                                                      ]
-                                                                                                                                                                                          );
+// Crear activo
+app.post("/api/activos", async (req, res) => {
+  try {
+    const {
+      codigo,
+      tipo,
+      marca,
+      modelo,
+      anio,
+      kilometraje_actual,
+      horas_uso_actual,
+      ubicacion,
+    } = req.body;
 
-                                                                                                                                                                                              res.status(201).json({ id: result.insertId, message: "Activo creado correctamente" });
-                                                                                                                                                                                                } catch (err) {
-                                                                                                                                                                                                    console.error("Error al crear activo:", err);
-                                                                                                                                                                                                        res.status(500).json({ message: "Error al crear activo" });
-                                                                                                                                                                                                          }
-                                                                                                                                                                                                          });
+    const [result] = await pool.query(
+      `INSERT INTO activos
+        (codigo, tipo, marca, modelo, anio, kilometraje_actual, horas_uso_actual, ubicacion)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        codigo,
+        tipo,
+        marca,
+        modelo,
+        anio,
+        kilometraje_actual,
+        horas_uso_actual,
+        ubicacion,
+      ]
+    );
 
-                                                                                                                                                                                                          const PORT = process.env.PORT || 3001;
-                                                                                                                                                                                                          app.listen(PORT, () => {
-                                                                                                                                                                                                            console.log(`Backend corriendo en puerto ${PORT}`);
-                                                                                                                                                                                                            });
+    res
+      .status(201)
+      .json({ id: result.insertId, message: "Activo creado correctamente" });
+  } catch (err) {
+    console.error("Error al crear activo:", err);
+    res.status(500).json({ message: "Error al crear activo" });
+  }
+});
 
-                                                                                                                                                                                                          
 // Obtener un activo por ID
 app.get("/api/activos/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const [rows] = await pool.query("SELECT * FROM activos WHERE id = ?", [id]);
+    const [rows] = await pool.query("SELECT * FROM activos WHERE id = ?", [
+      id,
+    ]);
 
     if (rows.length === 0) {
       return res.status(404).json({ message: "Activo no encontrado" });
@@ -135,7 +141,9 @@ app.delete("/api/activos/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    const [result] = await pool.query("DELETE FROM activos WHERE id = ?", [id]);
+    const [result] = await pool.query("DELETE FROM activos WHERE id = ?", [
+      id,
+    ]);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: "Activo no encontrado" });
@@ -147,6 +155,8 @@ app.delete("/api/activos/:id", async (req, res) => {
     res.status(500).json({ message: "Error al eliminar activo" });
   }
 });
+
+// ====================== ÓRDENES DE TRABAJO (OT) ======================
 
 // Crear Orden de Trabajo
 app.post("/api/ot", async (req, res) => {
@@ -176,7 +186,7 @@ app.post("/api/ot", async (req, res) => {
       ]
     );
 
-    // NUEVO: guardar historial de creación
+    // Historial de creación
     await pool.query(
       `INSERT INTO ot_historial
        (ot_id, descripcion_cambio, estado, trabajador_asignado)
@@ -203,10 +213,9 @@ app.post("/api/ot", async (req, res) => {
     console.error("Error al crear OT:", error);
     return res.status(500).json({ message: "Error al crear OT" });
   }
-
-  
 });
 
+// Listar OT (con filtro opcional por estado)
 app.get("/api/ot", async (req, res) => {
   try {
     const { estado } = req.query;
@@ -231,7 +240,7 @@ app.get("/api/ot", async (req, res) => {
   }
 });
 
-
+// Actualizar estado / trabajador de OT
 app.put("/api/ot/:id/estado", async (req, res) => {
   try {
     const { id } = req.params;
@@ -240,7 +249,6 @@ app.put("/api/ot/:id/estado", async (req, res) => {
     const campos = [];
     const valores = [];
 
-    // Validar estado (si viene)
     if (estado !== undefined) {
       const estadosPermitidos = ["pendiente", "en_progreso", "finalizada"];
       if (!estadosPermitidos.includes(estado)) {
@@ -250,14 +258,15 @@ app.put("/api/ot/:id/estado", async (req, res) => {
       valores.push(estado);
     }
 
-    // Actualizar trabajador (si viene)
     if (trabajadorAsignado !== undefined) {
       campos.push("trabajador_asignado = ?");
       valores.push(trabajadorAsignado);
     }
 
     if (campos.length === 0) {
-      return res.status(400).json({ message: "No se enviaron datos para actualizar" });
+      return res
+        .status(400)
+        .json({ message: "No se enviaron datos para actualizar" });
     }
 
     valores.push(id);
@@ -271,26 +280,26 @@ app.put("/api/ot/:id/estado", async (req, res) => {
       return res.status(404).json({ message: "OT no encontrada" });
     }
 
-    // 👇 NUEVO: guardar en historial
     let descripcion = "Actualización de OT:";
     if (estado !== undefined) descripcion += ` estado -> ${estado}`;
     if (trabajadorAsignado !== undefined)
       descripcion += `, trabajador -> ${trabajadorAsignado}`;
-      await pool.query(
-        `INSERT INTO ot_historial
+
+    await pool.query(
+      `INSERT INTO ot_historial
         (ot_id, descripcion_cambio, estado, trabajador_asignado)
-        VALUES (?, ?, ?, ?)`,
-        [id, descripcion, estado || null, trabajadorAsignado || null]
-      );
+       VALUES (?, ?, ?, ?)`,
+      [id, descripcion, estado || null, trabajadorAsignado || null]
+    );
 
     res.json({ message: "OT actualizada correctamente" });
-
   } catch (error) {
     console.error("Error al actualizar OT:", error);
     res.status(500).json({ message: "Error al actualizar OT" });
   }
 });
 
+// Historial de una OT
 app.get("/api/ot/:id/historial", async (req, res) => {
   try {
     const { id } = req.params;
@@ -308,6 +317,7 @@ app.get("/api/ot/:id/historial", async (req, res) => {
   }
 });
 
+// Detalle de una OT
 app.get("/api/ot/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -325,4 +335,10 @@ app.get("/api/ot/:id", async (req, res) => {
     console.error("Error al obtener detalle de OT:", error);
     res.status(500).json({ message: "Error al obtener detalle de OT" });
   }
+});
+
+// ====================== SERVIDOR ======================
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+  console.log(`Backend corriendo en puerto ${PORT}`);
 });
