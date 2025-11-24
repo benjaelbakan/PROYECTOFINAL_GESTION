@@ -176,18 +176,8 @@ app.post("/api/ot", async (req, res) => {
       ]
     );
 
-    // NUEVO: guardar historial de creación
-    await pool.query(
-      `INSERT INTO ot_historial
-       (ot_id, descripcion_cambio, estado, trabajador_asignado)
-       VALUES (?, ?, ?, ?)`,
-      [
-        result.insertId,
-        "Creación de OT",
-        "pendiente",
-        trabajadorAsignado || null,
-      ]
-    );
+    // 👉 Ya NO insertamos en ot_historial aquí.
+    // El historial de mantenimiento se registra cuando la OT pasa a 'finalizada'.
 
     return res.status(201).json({
       id: result.insertId,
@@ -203,10 +193,9 @@ app.post("/api/ot", async (req, res) => {
     console.error("Error al crear OT:", error);
     return res.status(500).json({ message: "Error al crear OT" });
   }
-
-  
 });
 
+// Listar OT (con filtro opcional por estado)
 app.get("/api/ot", async (req, res) => {
   try {
     const { estado } = req.query;
@@ -231,7 +220,7 @@ app.get("/api/ot", async (req, res) => {
   }
 });
 
-
+// Cambiar estado de la OT y, si queda 'finalizada', registrar en historial_mantenimiento
 app.put("/api/ot/:id/estado", async (req, res) => {
   try {
     const { id } = req.params;
@@ -240,7 +229,7 @@ app.put("/api/ot/:id/estado", async (req, res) => {
     const campos = [];
     const valores = [];
 
-    // Validar estado (si viene)
+    // Validar estado si viene
     if (estado !== undefined) {
       const estadosPermitidos = ["pendiente", "en_progreso", "finalizada"];
       if (!estadosPermitidos.includes(estado)) {
@@ -250,18 +239,21 @@ app.put("/api/ot/:id/estado", async (req, res) => {
       valores.push(estado);
     }
 
-    // Actualizar trabajador (si viene)
+    // Actualizar trabajador si viene
     if (trabajadorAsignado !== undefined) {
       campos.push("trabajador_asignado = ?");
       valores.push(trabajadorAsignado);
     }
 
     if (campos.length === 0) {
-      return res.status(400).json({ message: "No se enviaron datos para actualizar" });
+      return res
+        .status(400)
+        .json({ message: "No se enviaron datos para actualizar" });
     }
 
     valores.push(id);
 
+    // 1) Actualizar la OT
     const [result] = await pool.query(
       `UPDATE orden_trabajo SET ${campos.join(", ")} WHERE id = ?`,
       valores
@@ -271,43 +263,44 @@ app.put("/api/ot/:id/estado", async (req, res) => {
       return res.status(404).json({ message: "OT no encontrada" });
     }
 
-    // 👇 NUEVO: guardar en historial
-    let descripcion = "Actualización de OT:";
-    if (estado !== undefined) descripcion += ` estado -> ${estado}`;
-    if (trabajadorAsignado !== undefined)
-      descripcion += `, trabajador -> ${trabajadorAsignado}`;
-      await pool.query(
-        `INSERT INTO ot_historial
-        (ot_id, descripcion_cambio, estado, trabajador_asignado)
-        VALUES (?, ?, ?, ?)`,
-        [id, descripcion, estado || null, trabajadorAsignado || null]
+    // 2) Si la OT queda FINALIZADA, registrar en historial_mantenimiento
+    if (estado === "finalizada") {
+      const [rows] = await pool.query(
+        `SELECT id, activo_id, tipo, descripcion, 
+                IFNULL(fecha_cierre, DATE(fecha_creacion)) AS fecha,
+                costo
+         FROM orden_trabajo
+         WHERE id = ?`,
+        [id]
       );
 
-    res.json({ message: "OT actualizada correctamente" });
+      if (rows.length > 0) {
+        const ot = rows[0];
 
+        await pool.query(
+          `INSERT INTO historial_mantenimiento
+             (activo_id, ot_id, tipo, descripcion, fecha, costo)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [
+            ot.activo_id,
+            ot.id,
+            ot.tipo,
+            ot.descripcion,
+            ot.fecha,          // fecha de cierre o de creación
+            ot.costo || null,  // si aún no tienes costo, puede ir null
+          ]
+        );
+      }
+    }
+
+    return res.json({ message: "OT actualizada correctamente" });
   } catch (error) {
     console.error("Error al actualizar OT:", error);
     res.status(500).json({ message: "Error al actualizar OT" });
   }
 });
 
-app.get("/api/ot/:id/historial", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const [rows] = await pool.query(
-      `SELECT * FROM ot_historial
-       WHERE ot_id = ?
-       ORDER BY fecha ASC`,
-      [id]
-    );
-
-    res.json(rows);
-  } catch (error) {
-    console.error("Error al obtener historial de OT:", error);
-    res.status(500).json({ message: "Error al obtener historial de OT" });
-  }
-});
-
+// Detalle de una OT
 app.get("/api/ot/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -324,5 +317,57 @@ app.get("/api/ot/:id", async (req, res) => {
   } catch (error) {
     console.error("Error al obtener detalle de OT:", error);
     res.status(500).json({ message: "Error al obtener detalle de OT" });
+  }
+});
+
+// Historial por activo (con filtros opcionales)
+// Historial por activo (con filtros opcionales)
+app.get("/api/activos/:id/historial", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { desde, hasta, tipo, costoMin, costoMax } = req.query;
+
+    const condiciones = ["activo_id = ?"];
+    const valores = [id];
+
+    if (desde) {
+      condiciones.push("fecha >= ?");
+      valores.push(desde);
+    }
+
+    if (hasta) {
+      condiciones.push("fecha <= ?");
+      valores.push(hasta);
+    }
+
+    if (tipo && tipo !== "todos") {
+      condiciones.push("tipo = ?");
+      valores.push(tipo);
+    }
+
+    if (costoMin) {
+      condiciones.push("costo >= ?");
+      valores.push(costoMin);
+    }
+
+    if (costoMax) {
+      condiciones.push("costo <= ?");
+      valores.push(costoMax);
+    }
+
+    const where = "WHERE " + condiciones.join(" AND ");
+
+    const [rows] = await pool.query(
+      `SELECT id, activo_id, ot_id, tipo, descripcion, fecha, costo
+       FROM historial_mantenimiento
+       ${where}
+       ORDER BY fecha DESC, id DESC`,
+      valores
+    );
+
+    res.json(rows);
+  } catch (error) {
+    console.error("Error al obtener historial:", error);
+    res.status(500).json({ message: "Error al obtener historial" });
   }
 });

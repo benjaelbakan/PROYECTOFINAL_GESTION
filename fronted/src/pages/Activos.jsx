@@ -331,6 +331,13 @@ function Activos() {
                             >
                               Eliminar
                             </button>
+                            <button
+                              className="btn btn-sm btn-outline-info me-2"
+                              onClick={() => navigate(`/activos/${a.id}/historial`)}
+                            >
+                              Historial
+                            </button>
+
                           </td>
                         </tr>
                       ))}
