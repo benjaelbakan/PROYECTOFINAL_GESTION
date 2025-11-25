@@ -5,6 +5,7 @@ import cors from "cors";
 import activosRoutes from "./routes/RF01_activos.routes.js";
 import tareasRoutes from "./routes/RF04_tareas.routes.js";
 import kpiRoutes from "./routes/RF07_kpi.routes.js";
+import authRoutes from "./routes/RF08_auth.routes.js";
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.get("/", (req, res) => {
 app.use("/api/activos", activosRoutes);
 app.use("/api/RF04_tareas", tareasRoutes);
 app.use("/api/RF07_kpi", kpiRoutes);
+app.use("/api/RF08_auth", authRoutes);
 
 // Iniciar servidor
 const PORT = process.env.PORT || 3001;
