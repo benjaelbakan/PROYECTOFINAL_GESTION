@@ -27,11 +27,10 @@ function OrdenesTrabajo() {
 
       const data = await res.json();
 
-      // 🔥 Filtrar: NO mostrar finalizadas
-      const activas = data.filter((ot) => ot.estado !== "finalizada");
+      // ⬇️ FILTRAR LAS FINALIZADAS PARA QUE NO APAREZCAN EN LA LISTA
+      const soloNoFinalizadas = data.filter((ot) => ot.estado !== "finalizada");
 
-      setOts(activas);
-      
+      setOts(soloNoFinalizadas);
     } catch (err) {
       console.error("Error cargando OT:", err);
       setError(err.message);
@@ -39,6 +38,7 @@ function OrdenesTrabajo() {
       setCargando(false);
     }
   };
+
 
 
   useEffect(() => {
@@ -61,18 +61,26 @@ function OrdenesTrabajo() {
         throw new Error(dataError.message || "Error al actualizar estado");
       }
 
-      setMensaje("Estado actualizado correctamente");
-
-      setOts((prev) =>
-        prev.map((ot) =>
-          ot.id === id ? { ...ot, estado: nuevoEstado } : ot
-        )
-      );
+      // ✅ Si pasa a FINALIZADA: mensaje especial + se elimina de la lista
+      if (nuevoEstado === "finalizada") {
+        setMensaje("Estado finalizado. OT enviada al historial.");
+        setOts((prev) => prev.filter((ot) => ot.id !== id));
+      } else {
+        // ✅ Si solo cambia entre pendiente / en_progreso
+        setMensaje("Estado actualizado correctamente");
+        setOts((prev) =>
+          prev.map((ot) =>
+            ot.id === id ? { ...ot, estado: nuevoEstado } : ot
+          )
+        );
+      }
     } catch (err) {
       console.error("Error cambiando estado OT:", err);
       setError(err.message);
     }
   };
+
+
 
   const actualizarTrabajador = async (id, nuevoTrabajador) => {
     try {
@@ -115,9 +123,9 @@ function OrdenesTrabajo() {
             onChange={(e) => setEstadoFiltro(e.target.value)}
           >
             <option value="">Todas</option>
-            <option value="pendiente">Pendiente</option>
+            <option value="pendiente">Pendientes</option>
             <option value="en_progreso">En progreso</option>
-            <option value="finalizada">Finalizada</option>
+            
           </select>
         </div>
       </div>
