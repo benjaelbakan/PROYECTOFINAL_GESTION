@@ -26,7 +26,12 @@ function OrdenesTrabajo() {
       if (!res.ok) throw new Error("Error al cargar las órdenes de trabajo");
 
       const data = await res.json();
-      setOts(data);
+
+      // 🔥 Filtrar: NO mostrar finalizadas
+      const activas = data.filter((ot) => ot.estado !== "finalizada");
+
+      setOts(activas);
+      
     } catch (err) {
       console.error("Error cargando OT:", err);
       setError(err.message);
@@ -34,6 +39,7 @@ function OrdenesTrabajo() {
       setCargando(false);
     }
   };
+
 
   useEffect(() => {
     cargarOTs(estadoFiltro);

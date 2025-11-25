@@ -35,12 +35,11 @@ CREATE TABLE IF NOT EXISTS historial_mantenimiento (
   tipo VARCHAR(20) NOT NULL,
   descripcion TEXT NOT NULL,
   fecha DATE NOT NULL,
-  costo DECIMAL(10,2) NULL,
   creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
   INDEX idx_hist_activo (activo_id),
   INDEX idx_hist_fecha (fecha),
-  INDEX idx_hist_tipo (tipo),
-  INDEX idx_hist_costo (costo)
+  INDEX idx_hist_tipo (tipo)
 );
 
 CREATE TABLE IF NOT EXISTS activos (

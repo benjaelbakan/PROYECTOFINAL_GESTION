@@ -1,16 +1,13 @@
-// frontend/src/pages/HistorialActivo.jsx
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
-function HistorialActivo() {
-  const { id } = useParams(); // id del activo
+function HistorialGlobal() {
   const navigate = useNavigate();
 
   const [registros, setRegistros] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
 
-  // filtros
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
   const [tipo, setTipo] = useState("");
@@ -23,12 +20,11 @@ function HistorialActivo() {
       const params = new URLSearchParams();
       if (desde) params.append("desde", desde);
       if (hasta) params.append("hasta", hasta);
-      if (tipo) params.append("tipo", tipo); // "" = todos, no se envía nada
+      if (tipo) params.append("tipo", tipo);
 
-      const qs = params.toString();
-      const url = qs
-        ? `/api/activos/${id}/historial?${qs}`
-        : `/api/activos/${id}/historial`;
+      const url = params.toString()
+        ? `/api/historial?${params.toString()}`
+        : `/api/historial`;
 
       const res = await fetch(url);
       if (!res.ok) throw new Error("Error al cargar historial");
@@ -57,7 +53,7 @@ function HistorialActivo() {
         ← Volver
       </button>
 
-      <h2>Historial de mantenimiento – Activo #{id}</h2>
+      <h2>Historial de mantenimiento</h2>
 
       {/* Filtros */}
       <div className="card bg-dark border-secondary mt-3 mb-3">
@@ -129,6 +125,7 @@ function HistorialActivo() {
             <thead>
               <tr>
                 <th>ID</th>
+                <th>Activo ID</th>
                 <th>OT</th>
                 <th>Tipo</th>
                 <th>Descripción</th>
@@ -140,19 +137,12 @@ function HistorialActivo() {
               {registros.map((r) => (
                 <tr key={r.id}>
                   <td>{r.id}</td>
+                  <td>{r.activo_id}</td>
                   <td>{r.ot_id}</td>
                   <td>{r.tipo}</td>
                   <td>{r.descripcion}</td>
-                  <td>
-                    {r.fecha
-                      ? new Date(r.fecha).toLocaleDateString()
-                      : "-"}
-                  </td>
-                  <td>
-                    {r.creado_en
-                      ? new Date(r.creado_en).toLocaleString()
-                      : "-"}
-                  </td>
+                  <td>{r.fecha}</td>
+                  <td>{new Date(r.creado_en).toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>
@@ -163,4 +153,4 @@ function HistorialActivo() {
   );
 }
 
-export default HistorialActivo;
+export default HistorialGlobal;

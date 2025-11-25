@@ -7,7 +7,7 @@ import GenerarOT from "./pages/GenerarOT";
 import OrdenesTrabajo from "./pages/OrdenesTrabajo.jsx";
 import DetalleOT from "./pages/DetalleOT.jsx";
 import HistorialActivo from "./pages/HistorialActivo.jsx";
-
+import HistorialGlobal from "./pages/HistorialGlobal";
 
 function App() {
   return (
@@ -85,6 +85,7 @@ function App() {
             <Route path="/ot" element={<OrdenesTrabajo />} />
             <Route path="/ot/:id" element={<DetalleOT />} />
             <Route path="/activos/:id/historial" element={<HistorialActivo />} />
+            <Route path="/historial" element={<HistorialGlobal />} />
           </Routes>
         </div>
       </main>

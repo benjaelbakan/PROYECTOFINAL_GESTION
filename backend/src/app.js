@@ -221,6 +221,10 @@ app.get("/api/ot", async (req, res) => {
 });
 
 // Cambiar estado de la OT y, si queda 'finalizada', registrar en historial_mantenimiento
+// Cambiar estado de la OT y registrar en historial si pasa a 'finalizada'
+// Cambiar estado de la OT y registrar historial si queda finalizada
+// Cambiar estado de la OT y registrar historial si queda finalizada
+// Cambiar estado de la OT y registrar historial si queda finalizada (SIN COSTO)
 app.put("/api/ot/:id/estado", async (req, res) => {
   try {
     const { id } = req.params;
@@ -229,31 +233,29 @@ app.put("/api/ot/:id/estado", async (req, res) => {
     const campos = [];
     const valores = [];
 
-    // Validar estado si viene
+    // Validar estado
     if (estado !== undefined) {
-      const estadosPermitidos = ["pendiente", "en_progreso", "finalizada"];
-      if (!estadosPermitidos.includes(estado)) {
+      const permitidos = ["pendiente", "en_progreso", "finalizada"];
+      if (!permitidos.includes(estado)) {
         return res.status(400).json({ message: "Estado no válido" });
       }
       campos.push("estado = ?");
       valores.push(estado);
     }
 
-    // Actualizar trabajador si viene
+    // Actualizar trabajador
     if (trabajadorAsignado !== undefined) {
       campos.push("trabajador_asignado = ?");
       valores.push(trabajadorAsignado);
     }
 
     if (campos.length === 0) {
-      return res
-        .status(400)
-        .json({ message: "No se enviaron datos para actualizar" });
+      return res.status(400).json({ message: "No hay datos para actualizar" });
     }
 
     valores.push(id);
 
-    // 1) Actualizar la OT
+    // 1) Actualizar OT
     const [result] = await pool.query(
       `UPDATE orden_trabajo SET ${campos.join(", ")} WHERE id = ?`,
       valores
@@ -263,12 +265,10 @@ app.put("/api/ot/:id/estado", async (req, res) => {
       return res.status(404).json({ message: "OT no encontrada" });
     }
 
-    // 2) Si la OT queda FINALIZADA, registrar en historial_mantenimiento
+    // 2) Si quedó FINALIZADA, insertar en historial_mantenimiento
     if (estado === "finalizada") {
       const [rows] = await pool.query(
-        `SELECT id, activo_id, tipo, descripcion, 
-                IFNULL(fecha_cierre, DATE(fecha_creacion)) AS fecha,
-                costo
+        `SELECT id, activo_id, tipo, descripcion, fecha_programada, fecha_creacion
          FROM orden_trabajo
          WHERE id = ?`,
         [id]
@@ -277,28 +277,42 @@ app.put("/api/ot/:id/estado", async (req, res) => {
       if (rows.length > 0) {
         const ot = rows[0];
 
-        await pool.query(
-          `INSERT INTO historial_mantenimiento
-             (activo_id, ot_id, tipo, descripcion, fecha, costo)
-           VALUES (?, ?, ?, ?, ?, ?)`,
-          [
-            ot.activo_id,
-            ot.id,
-            ot.tipo,
-            ot.descripcion,
-            ot.fecha,          // fecha de cierre o de creación
-            ot.costo || null,  // si aún no tienes costo, puede ir null
-          ]
-        );
+        // Usamos como fecha de mantenimiento:
+        // 1) fecha_programada si existe
+        // 2) si no, la fecha de creación
+        const fechaMantenimiento =
+          ot.fecha_programada ||
+          new Date(ot.fecha_creacion).toISOString().slice(0, 10);
+
+        try {
+          await pool.query(
+            `INSERT INTO historial_mantenimiento
+               (activo_id, ot_id, tipo, descripcion, fecha)
+             VALUES (?, ?, ?, ?, ?)`,
+            [
+              ot.activo_id,
+              ot.id,
+              ot.tipo,
+              ot.descripcion,
+              fechaMantenimiento
+            ]
+          );
+        } catch (e) {
+          console.error("Error al insertar en historial_mantenimiento:", e);
+          // Importante: NO rompemos la respuesta al usuario si el historial falla
+        }
       }
     }
 
-    return res.json({ message: "OT actualizada correctamente" });
+    res.json({ message: "OT actualizada correctamente" });
   } catch (error) {
     console.error("Error al actualizar OT:", error);
     res.status(500).json({ message: "Error al actualizar OT" });
   }
 });
+
+
+
 
 // Detalle de una OT
 app.get("/api/ot/:id", async (req, res) => {
@@ -322,10 +336,12 @@ app.get("/api/ot/:id", async (req, res) => {
 
 // Historial por activo (con filtros opcionales)
 // Historial por activo (con filtros opcionales)
+// Historial por activo (con filtros opcionales)
+// Historial por activo (con filtros opcionales) – SIN COSTO
 app.get("/api/activos/:id/historial", async (req, res) => {
   try {
     const { id } = req.params;
-    const { desde, hasta, tipo, costoMin, costoMax } = req.query;
+    const { desde, hasta, tipo } = req.query;
 
     const condiciones = ["activo_id = ?"];
     const valores = [id];
@@ -345,20 +361,10 @@ app.get("/api/activos/:id/historial", async (req, res) => {
       valores.push(tipo);
     }
 
-    if (costoMin) {
-      condiciones.push("costo >= ?");
-      valores.push(costoMin);
-    }
-
-    if (costoMax) {
-      condiciones.push("costo <= ?");
-      valores.push(costoMax);
-    }
-
     const where = "WHERE " + condiciones.join(" AND ");
 
     const [rows] = await pool.query(
-      `SELECT id, activo_id, ot_id, tipo, descripcion, fecha, costo
+      `SELECT id, activo_id, ot_id, tipo, descripcion, fecha, creado_en
        FROM historial_mantenimiento
        ${where}
        ORDER BY fecha DESC, id DESC`,
@@ -369,5 +375,47 @@ app.get("/api/activos/:id/historial", async (req, res) => {
   } catch (error) {
     console.error("Error al obtener historial:", error);
     res.status(500).json({ message: "Error al obtener historial" });
+  }
+});
+
+// Historial global de mantenimiento (todos los activos)
+app.get("/api/historial", async (req, res) => {
+  try {
+    const { desde, hasta, tipo } = req.query;
+
+    const condiciones = [];
+    const valores = [];
+
+    if (desde) {
+      condiciones.push("fecha >= ?");
+      valores.push(desde);
+    }
+
+    if (hasta) {
+      condiciones.push("fecha <= ?");
+      valores.push(hasta);
+    }
+
+    if (tipo && tipo !== "todos" && tipo !== "") {
+      condiciones.push("tipo = ?");
+      valores.push(tipo);
+    }
+
+    const where = condiciones.length
+      ? "WHERE " + condiciones.join(" AND ")
+      : "";
+
+    const [rows] = await pool.query(
+      `SELECT id, activo_id, ot_id, tipo, descripcion, fecha, creado_en
+       FROM historial_mantenimiento
+       ${where}
+       ORDER BY fecha DESC, id DESC`,
+      valores
+    );
+
+    res.json(rows);
+  } catch (error) {
+    console.error("Error al obtener historial global:", error);
+    res.status(500).json({ message: "Error al obtener historial global" });
   }
 });

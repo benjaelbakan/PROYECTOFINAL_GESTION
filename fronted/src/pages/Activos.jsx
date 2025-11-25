@@ -213,6 +213,7 @@ function Activos() {
               <h5 className="card-title mb-0 text-light">
                 Activos registrados
               </h5>
+
               <div className="d-flex gap-2">
                 <button
                   className="btn btn-outline-info btn-sm"
@@ -221,6 +222,7 @@ function Activos() {
                 >
                   Exportar Excel
                 </button>
+
                 <button
                   className="btn btn-outline-warning btn-sm"
                   type="button"
@@ -228,6 +230,16 @@ function Activos() {
                 >
                   Exportar PDF
                 </button>
+
+                {/* 👇 Botón único de historial en la cabecera */}
+                <button
+                  className="btn btn-outline-info btn-sm"
+                  type="button"
+                  onClick={() => navigate("/activos/1/historial")}
+                >
+                  Ver historial
+                </button>
+
                 <button
                   className="btn btn-success btn-sm"
                   onClick={() => navigate("/activos/nuevo")}
@@ -236,7 +248,6 @@ function Activos() {
                 </button>
               </div>
             </div>
-
             {/* BUSCADOR */}
             <div className="mb-3">
               <input
@@ -331,12 +342,7 @@ function Activos() {
                             >
                               Eliminar
                             </button>
-                            <button
-                              className="btn btn-sm btn-outline-info me-2"
-                              onClick={() => navigate(`/activos/${a.id}/historial`)}
-                            >
-                              Historial
-                            </button>
+                           
 
                           </td>
                         </tr>
