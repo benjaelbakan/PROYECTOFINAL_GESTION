@@ -232,10 +232,9 @@ function Activos() {
                 </button>
 
                 {/* 👇 Botón único de historial en la cabecera */}
-                <button
-                  className="btn btn-outline-info btn-sm"
-                  type="button"
-                  onClick={() => navigate("/activos/1/historial")}
+                <button 
+                  className="btn btn-outline-primary me-2"
+                  onClick={() => navigate('/historial')} 
                 >
                   Ver historial
                 </button>
