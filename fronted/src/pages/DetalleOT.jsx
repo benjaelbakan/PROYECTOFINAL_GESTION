@@ -20,20 +20,32 @@ function DetalleOT() {
       setCargando(true);
       setError(null);
 
+      console.log('Cargando OT con ID:', id);
+
       const [resOt, resHist] = await Promise.all([
         fetch(`/api/ot/${id}`),
         fetch(`/api/ot/${id}/historial`),
       ]);
 
-      if (!resOt.ok) throw new Error("Error al obtener detalle de OT");
+      console.log('Respuesta OT:', resOt.status, resOt.ok);
+      console.log('Respuesta historial:', resHist.status, resHist.ok);
+
+      if (!resOt.ok) {
+        const errorText = await resOt.text();
+        console.error('Error OT:', errorText);
+        throw new Error(`Error al obtener detalle de OT: ${resOt.status}`);
+      }
 
       const dataOt = await resOt.json();
+      console.log('Data OT:', dataOt);
+      
       const dataHist = resHist.ok ? await resHist.json() : [];
+      console.log('Data historial:', dataHist);
 
       setOt(dataOt);
-      setHistorial(dataHist);
+      setHistorial(Array.isArray(dataHist) ? dataHist : (dataHist.historial || []));
     } catch (err) {
-      console.error(err);
+      console.error('Error completo:', err);
       setError(err.message);
     } finally {
       setCargando(false);

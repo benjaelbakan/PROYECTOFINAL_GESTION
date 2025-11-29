@@ -6,6 +6,94 @@ body {
 
 }
 
+/* Central manager card (Activos) large dark style */
+.manager-card-large {
+  max-width: 980px;
+  margin: 28px auto;
+  background: linear-gradient(180deg, #0b0f13 0%, #0f1620 100%);
+  color: #e6eef6;
+  padding: 22px;
+  border-radius: 10px;
+  box-shadow: 0 18px 40px rgba(10, 20, 30, 0.5), inset 0 2px 0 rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.03);
+}
+.manager-card-large .manager-header h5{ color:#d9e6f2; margin:0; }
+.manager-card-large .table-responsive { background: transparent; }
+.manager-card-large .table {
+  background: rgba(255,255,255,0.02);
+  color: #d7e3ef;
+}
+.manager-card-large .table thead th{
+  color: #9fb1c7;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.manager-card-large .table tbody td{
+  color: #e6eef6;
+}
+.manager-card-large .btn-outline-light{
+  color:#fff; border-color: rgba(255,255,255,0.12);
+}
+.manager-card-large .btn-danger{ background:#c62828; border-color:#b71c1c; }
+.manager-card-large .form-control{
+  background: rgba(0,0,0,0.35); color: #e6eef6; border: 1px solid rgba(255,255,255,0.04);
+}
+
+@media (max-width: 767px){
+  .manager-card-large{ padding:14px; margin:16px; }
+}
+
+/* Make dashboard headings and KPI text more visible */
+.app-container h2 {
+  color: #0d2530;
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+.kpi-card .kpi-title {
+  color: #52707f;
+}
+.kpi-card .kpi-value {
+  color: #0b2130;
+  font-weight: 700;
+}
+.panel h6 {
+  color: #0b2130;
+  font-weight: 600;
+}
+/* avoid overriding dark manager card styles */
+.manager-card-large .panel h6, .manager-card-large .manager-header h5 { color: #d9e6f2; }
+
+/* Ensure panels inside manager-card (light inner panels) have good contrast */
+.manager-card .panel {
+  background: #ffffff;
+  color: #0b2130;
+}
+.manager-card .panel h6 {
+  color: #0b2130;
+}
+
+/* Make outline buttons inside panels more visible */
+.manager-card .panel .btn {
+  font-weight: 600;
+}
+.manager-card .panel .btn-outline-primary { color: #0d6efd; border-color: #bcd8ff; }
+.manager-card .panel .btn-outline-success { color: #198754; border-color: #cfeedd; }
+.manager-card .panel .btn-outline-warning { color: #f6c23e; border-color: #fbf0d0; }
+.manager-card .panel .btn-outline-info { color: #36a2eb; border-color: #cfeaff; }
+.manager-card .panel .btn-outline-secondary { color: #6c757d; border-color: #e9ecef; }
+.manager-card .panel .btn-outline-light { color: #0b2130; border-color: rgba(0,0,0,0.08); }
+
+.manager-card .panel .btn-outline-primary:hover,
+.manager-card .panel .btn-outline-success:hover,
+.manager-card .panel .btn-outline-warning:hover,
+.manager-card .panel .btn-outline-info:hover,
+.manager-card .panel .btn-outline-secondary:hover,
+.manager-card .panel .btn-outline-light:hover {
+  background-color: rgba(0,0,0,0.04);
+}
+
+/* Improve small text readability inside panels */
+.manager-card .panel .small, .manager-card .panel ul.small li { color: #3b5060; }
+
 a {
   text-decoration: none;
 }
@@ -67,14 +155,163 @@ a {
   opacity: 1 !important;
 }
 
-/* Forzar texto claro en todo el tema oscuro */
-body, 
-body * {
-  color: #ffffff !important;
+/* Texto por defecto: claro sobre fondo oscuro, pero no forzamos globalmente
+   (evita texto blanco sobre fondos claros como tablas/light). */
+body {
+  color: #e6eef6; /* gris muy claro, no puro blanco */
+}
+
+/* Componentes del tema oscuro: asegurar legibilidad */
+.card,
+.table-dark,
+.navbar,
+.modal-content,
+.alert,
+.table-responsive,
+.form-control,
+.form-select {
+  color: #e6eef6 !important;
+}
+
+/* Elementos con fondo claro deben usar texto oscuro (no forzar con !important salvo aquí) */
+.table:not(.table-dark),
+.table-light,
+.bg-light {
+  color: #1f2937 !important; /* texto oscuro sobre fondos claros */
 }
 
 /* Excepciones opcionales (links con color propio) */
 a.btn, button.btn {
   color: inherit !important;
 }
+
+/* NAVBAR tweaks: evitar botones muy grandes/espaciados y mejorar alineado */
+.navbar .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+.navbar .btn {
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.35rem;
+}
+.navbar .btn[style*="pointerEvents"] {
+  opacity: 0.95;
+}
+.navbar-brand { display: flex; align-items: center; gap: 0.6rem; }
+
+/* Mantener la cabecera en una sola línea en pantallas medias */
+@media (max-width: 768px) {
+  .navbar .container { flex-wrap: wrap; gap: 0.4rem; }
+}
+
+/* Dashboard grid */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+.dashboard-grid > .card { grid-column: span 6; }
+.dashboard-grid > .card[style] { /* element with inline style (notifications) */ }
+
+/* Make layout responsive */
+@media (max-width: 992px) {
+  .dashboard-grid { grid-template-columns: repeat(6, 1fr); }
+  .dashboard-grid > .card { grid-column: span 6; }
+}
+@media (max-width: 576px) {
+  .dashboard-grid { grid-template-columns: repeat(1, 1fr); }
+}
+
+.card h6 { margin-bottom: 0.8rem; }
+.list-group-item { padding: 0.6rem 0.75rem; }
+
+
+/* ======= Nuevo layout estilo Atlantis (sidebar + topbar) ======= */
+:root{
+  --primary: #0d6efd;
+  --sidebar-bg: #0b5ed7;
+  --sidebar-text: #ffffff;
+  --panel-bg: #ffffff;
+  --panel-text: #0b1220;
+  --muted: #6b7280;
+}
+
+.app-dashboard{ display:flex; min-height:100vh; background:#f4f7fb; }
+.app-sidebar{ width:260px; background:var(--sidebar-bg); color:var(--sidebar-text); padding:20px; display:flex; flex-direction:column; }
+.app-sidebar .brand{ font-weight:700; font-size:1.25rem; margin-bottom:6px; }
+.app-sidebar .user{ font-size:0.85rem; opacity:0.95; color:rgba(255,255,255,0.95); }
+.sidebar-nav{ margin-top:18px; display:flex; flex-direction:column; gap:10px; }
+.sidebar-nav .nav-item{ color:rgba(255,255,255,0.9); padding:8px 12px; border-radius:6px; }
+.sidebar-nav .nav-item.active, .sidebar-nav .nav-item:hover{ background:rgba(255,255,255,0.12); }
+.sidebar-footer{ margin-top:auto; font-size:0.8rem; opacity:0.85; }
+
+.app-main{ flex:1; display:flex; flex-direction:column; }
+.app-topbar{ height:64px; display:flex; align-items:center; justify-content:space-between; padding:0 22px; background:#ffffff; border-bottom:1px solid #eef2f7; }
+.topbar-left{ display:flex; align-items:center; gap:12px; }
+.topbar-left .btn-icon{ background:transparent; color:#0b5ed7; border:1px solid rgba(11,94,215,0.12); border-radius:8px; padding:8px 10px; }
+.topbar-left img{ display:block; }
+.topbar-right{ display:flex; align-items:center; gap:10px; padding-left:8px; }
+.topbar-right .avatar{ background:#0d6efd; color:#fff; width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-radius:50%; font-weight:700; }
+
+.app-container{ padding:22px; max-width:1200px; margin:0 auto; background:#f5f7fb; min-height:calc(100vh - 64px); }
+
+.kpi-row{ display:flex; gap:16px; margin-bottom:18px; }
+.kpi-card{ background:var(--panel-bg); color:var(--panel-text); padding:16px; border-radius:8px; box-shadow:0 8px 24px rgba(15, 23, 42, 0.06); flex:1; }
+.kpi-card .kpi-value{ color:#0b1220; }
+.kpi-title{ font-size:0.9rem; color:var(--muted); }
+.kpi-value{ font-size:1.6rem; font-weight:700; margin-top:6px; }
+
+.dashboard-grid{ display:grid; grid-template-columns: repeat(12,1fr); gap:18px; }
+.dashboard-grid > .panel{ background:#fff; padding:18px; border-radius:10px; box-shadow:0 10px 30px rgba(2,6,23,0.06); }
+.dashboard-grid .col-8{ grid-column: span 8; }
+.dashboard-grid .col-4{ grid-column: span 4; }
+.dashboard-grid .col-12{ grid-column: span 12; }
+
+@media (max-width: 992px){
+  .app-sidebar{ display:none; }
+  .top-search input{ width:180px; }
+  .dashboard-grid{ grid-template-columns: repeat(6,1fr); }
+  .dashboard-grid .col-8{ grid-column: span 6; }
+  .dashboard-grid .col-4{ grid-column: span 6; }
+}
+
+/* Estilo activo del nav */
+.sidebar-nav .nav-item{ transition:all .12s ease; }
+.sidebar-nav .nav-item.active{ background:rgba(255,255,255,0.14); box-shadow: inset 0 2px 6px rgba(0,0,0,0.06); }
+
+/* Collapsed sidebar */
+.app-dashboard.sidebar-collapsed .app-sidebar{ width:88px; padding:12px; }
+.app-dashboard.sidebar-collapsed .app-sidebar .nav-label,
+.app-dashboard.sidebar-collapsed .app-sidebar .user,
+.app-dashboard.sidebar-collapsed .app-sidebar .sidebar-top > div > div { display:none; }
+.app-dashboard.sidebar-collapsed .app-main{ margin-left:88px; }
+.app-dashboard.sidebar-collapsed .top-search input{ width:140px; }
+
+/* Nav item layout */
+.sidebar-nav .nav-item{ display:flex; align-items:center; gap:10px; padding:10px 12px; color:rgba(255,255,255,0.95); border-radius:8px; }
+.sidebar-nav .nav-icon{ display:inline-flex; width:20px; height:20px; align-items:center; justify-content:center; }
+.sidebar-nav .nav-label{ font-size:0.95rem; }
+
+/* Topbar small/ghost buttons */
+.btn-ghost{ background:transparent; border:none; font-size:18px; }
+.btn-outline-danger{ border-color:#ef4444; color:#ef4444; background:transparent; }
+
+/* Manager-centered dark card style (like captura) */
+.manager-center{ display:flex; justify-content:center; }
+.manager-card{ width:820px; background: #0f1720; color: #e6eef6; padding:20px; border-radius:10px; box-shadow: 0 18px 50px rgba(2,6,23,0.25); }
+.manager-card h6{ color: #f8fafc; }
+.manager-card .list-group-item{ background: transparent; color: #e6eef6; border-color: rgba(255,255,255,0.06); }
+.manager-card .alert{ background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.04); }
+.manager-card .btn{ border-radius:6px; }
+.manager-card .table{ color: #e6eef6; }
+.manager-card .table thead th{ color: #d1d5db; border-bottom: 1px solid rgba(255,255,255,0.06); }
+
+@media (max-width: 992px){
+  .manager-card{ width:calc(100% - 48px); padding:16px; }
+}
+
+
 
