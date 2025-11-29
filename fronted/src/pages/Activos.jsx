@@ -1,4 +1,3 @@
-// fronted/src/pages/Activos.jsx
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -6,11 +5,29 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
+// --- ICONOS SVG ---
+const IconEdit = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+    <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
+  </svg>
+);
+
+const IconTrash = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+    <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+    <path fillRule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+  </svg>
+);
+
 function Activos() {
   const [activos, setActivos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
+  
+  // --- ESTADOS DE FILTROS ---
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState("");      
+  const [filterLocation, setFilterLocation] = useState(""); 
 
   // ordenamiento
   const [sortField, setSortField] = useState("id");
@@ -48,16 +65,37 @@ function Activos() {
     cargarActivos();
   }, []);
 
-  // --- FILTRO + ORDEN ---
+  // --- KPI: ESTADÍSTICAS RÁPIDAS ---
+  const stats = useMemo(() => {
+    const total = activos.length;
+    const vehiculos = activos.filter(a => a.tipo === "VEHICULO").length;
+    const maquinarias = activos.filter(a => a.tipo === "MAQUINARIA").length;
+    return { total, vehiculos, maquinarias };
+  }, [activos]);
+
+  // --- OBTENER UBICACIONES ÚNICAS ---
+  const uniqueLocations = useMemo(() => {
+    const locs = activos.map(a => a.ubicacion).filter(Boolean);
+    return [...new Set(locs)].sort();
+  }, [activos]);
+
+  // --- LÓGICA DE FILTRADO Y ORDENAMIENTO ---
   const activosFiltradosYOrdenados = useMemo(() => {
     let data = [...activos];
+
+    if (filterType) {
+      data = data.filter((a) => a.tipo === filterType);
+    }
+
+    if (filterLocation) {
+      data = data.filter((a) => a.ubicacion === filterLocation);
+    }
 
     if (searchTerm.trim() !== "") {
       const term = searchTerm.toLowerCase();
       data = data.filter(
         (a) =>
           a.codigo?.toLowerCase().includes(term) ||
-          a.tipo?.toLowerCase().includes(term) ||
           a.marca?.toLowerCase().includes(term) ||
           a.modelo?.toLowerCase().includes(term) ||
           a.ubicacion?.toLowerCase().includes(term)
@@ -80,20 +118,19 @@ function Activos() {
     });
 
     return data;
-  }, [activos, searchTerm, sortField, sortOrder]);
+  }, [activos, searchTerm, filterType, filterLocation, sortField, sortOrder]);
 
   // --- PAGINACIÓN ---
   const totalItems = activosFiltradosYOrdenados.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-
   const currentPageSafe = Math.min(currentPage, totalPages);
   const startIndex = (currentPageSafe - 1) * pageSize;
   const endIndex = Math.min(startIndex + pageSize, totalItems);
+  const activosPagina = activosFiltradosYOrdenados.slice(startIndex, endIndex);
 
-  const activosPagina = activosFiltradosYOrdenados.slice(
-    startIndex,
-    endIndex
-  );
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterType, filterLocation, pageSize]);
 
   const handleSort = (field) => {
     if (sortField === field) {
@@ -116,10 +153,8 @@ function Activos() {
 
   const handlePageSizeChange = (e) => {
     setPageSize(Number(e.target.value));
-    setCurrentPage(1);
   };
 
-  // --- ELIMINAR ---
   const abrirConfirm = (activo) => {
     setActivoAEliminar(activo);
     setShowConfirm(true);
@@ -134,9 +169,7 @@ function Activos() {
     if (!activoAEliminar) return;
     try {
       await axios.delete(`/api/activos/${activoAEliminar.id}`);
-      setActivos((prev) =>
-        prev.filter((a) => a.id !== activoAEliminar.id)
-      );
+      setActivos((prev) => prev.filter((a) => a.id !== activoAEliminar.id));
     } catch (err) {
       console.error("Error al eliminar activo:", err);
       alert("No se pudo eliminar el activo.");
@@ -145,204 +178,166 @@ function Activos() {
     }
   };
 
-  // --- EXPORTAR EXCEL ---
   const exportarExcel = () => {
-    if (activosFiltradosYOrdenados.length === 0) {
-      alert("No hay datos para exportar.");
-      return;
-    }
-
+    if (activosFiltradosYOrdenados.length === 0) return alert("No hay datos.");
     const datos = activosFiltradosYOrdenados.map((a) => ({
       ID: a.id,
-      Código: a.codigo,
+      "Patente / Serie": a.codigo,
       Tipo: a.tipo,
       Marca: a.marca,
       Modelo: a.modelo,
       Ubicación: a.ubicacion,
     }));
-
     const worksheet = XLSX.utils.json_to_sheet(datos);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Activos");
-
     XLSX.writeFile(workbook, "activos_biotrans.xlsx");
   };
 
-  // --- EXPORTAR PDF ---
   const exportarPDF = () => {
-    if (activosFiltradosYOrdenados.length === 0) {
-      alert("No hay datos para exportar.");
-      return;
-    }
-
+    if (activosFiltradosYOrdenados.length === 0) return alert("No hay datos.");
     const doc = new jsPDF();
-
     doc.setFontSize(14);
     doc.text("BíoTrans Ltda - Activos", 14, 15);
     doc.setFontSize(10);
-    doc.text("Victor Morales · El partner de tu taller", 14, 21);
-
-    const head = [["ID", "Código", "Tipo", "Marca", "Modelo", "Ubicación"]];
-    const body = activosFiltradosYOrdenados.map((a) => [
-      a.id,
-      a.codigo,
-      a.tipo,
-      a.marca,
-      a.modelo,
-      a.ubicacion,
-    ]);
-
-    autoTable(doc, {
-      startY: 26,
-      head,
-      body,
-      theme: "grid",
-      headStyles: { fillColor: [33, 150, 243] },
-    });
-
+    doc.text("Listado de flota", 14, 21);
+    const head = [["ID", "Patente / Serie", "Tipo", "Marca", "Modelo", "Ubicación"]];
+    const body = activosFiltradosYOrdenados.map((a) => [a.id, a.codigo, a.tipo, a.marca, a.modelo, a.ubicacion]);
+    autoTable(doc, { startY: 26, head, body, theme: "grid", headStyles: { fillColor: [33, 150, 243] } });
     doc.save("activos_biotrans.pdf");
   };
 
   return (
     <div className="row justify-content-center">
       <div className="col-12">
-        <div className="card bg-dark border-secondary shadow-sm">
-          <div className="card-body">
-            {/* Título, exportar, nuevo */}
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <h5 className="card-title mb-0 text-light">
-                Activos registrados
-              </h5>
-
-              <div className="d-flex gap-2">
-                <button
-                  className="btn btn-outline-info btn-sm"
-                  type="button"
-                  onClick={exportarExcel}
-                >
-                  Exportar Excel
-                </button>
-
-                <button
-                  className="btn btn-outline-warning btn-sm"
-                  type="button"
-                  onClick={exportarPDF}
-                >
-                  Exportar PDF
-                </button>
-
-                {/* 👇 Botón único de historial en la cabecera */}
-                <button 
-                  className="btn btn-outline-primary me-2"
-                  onClick={() => navigate('/historial')} 
-                >
-                  Ver historial
-                </button>
-
-                <button
-                  className="btn btn-success btn-sm"
-                  onClick={() => navigate("/activos/nuevo")}
-                >
-                  + Nuevo Activo
-                </button>
+        
+        {/* --- TARJETAS DE RESUMEN (KPIs) --- */}
+        <div className="row g-3 mb-4">
+          <div className="col-md-4">
+            <div className="card bg-dark border-secondary text-white h-100 py-3">
+              <div className="card-body d-flex align-items-center justify-content-between">
+                <div>
+                  <h6 className="text-white-50 mb-1 text-uppercase small fw-bold">Total Activos</h6>
+                  <h2 className="mb-0 fw-bold">{stats.total}</h2>
+                </div>
+                <div className="opacity-50 display-6">📦</div>
               </div>
             </div>
-            {/* BUSCADOR */}
-            <div className="mb-3">
-              <input
-                type="text"
-                className="form-control form-control-sm text-light"
-                style={{
-                  backgroundColor: "#111827",
-                  borderColor: "#374151",
-                }}
-                placeholder="Buscar por código, tipo, marca, modelo o ubicación..."
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setCurrentPage(1);
-                }}
-              />
+          </div>
+          <div className="col-md-4">
+            <div className="card bg-dark border-secondary text-white h-100 py-3">
+              <div className="card-body d-flex align-items-center justify-content-between">
+                <div>
+                  <h6 className="text-white-50 mb-1 text-uppercase small fw-bold">Vehículos</h6>
+                  <h2 className="mb-0 fw-bold text-primary">{stats.vehiculos}</h2>
+                </div>
+                <div className="opacity-50 display-6">🚛</div>
+              </div>
+            </div>
+          </div>
+          <div className="col-md-4">
+            <div className="card bg-dark border-secondary text-white h-100 py-3">
+              <div className="card-body d-flex align-items-center justify-content-between">
+                <div>
+                  <h6 className="text-white-50 mb-1 text-uppercase small fw-bold">Maquinarias</h6>
+                  <h2 className="mb-0 fw-bold text-warning">{stats.maquinarias}</h2>
+                </div>
+                <div className="opacity-50 display-6">🚜</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* --- TABLA Y FILTROS --- */}
+        <div className="card bg-dark border-secondary shadow-sm">
+          <div className="card-body">
+            
+            {/* Cabecera */}
+            <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+              <h5 className="card-title mb-0 text-light">Inventario de Flota</h5>
+              <div className="d-flex gap-2">
+                <button className="btn btn-outline-info btn-sm" onClick={exportarExcel}>XLS</button>
+                <button className="btn btn-outline-warning btn-sm" onClick={exportarPDF}>PDF</button>
+                <button className="btn btn-outline-primary btn-sm" onClick={() => navigate('/historial')}>Historial</button>
+                <button className="btn btn-success btn-sm" onClick={() => navigate("/activos/nuevo")}>+ Nuevo</button>
+              </div>
             </div>
 
-            {errorMsg && (
-              <div className="alert alert-danger py-2">{errorMsg}</div>
-            )}
+            {/* Filtros */}
+            <div className="row g-2 mb-3">
+              <div className="col-md-5">
+                <input
+                  type="text"
+                  className="form-control form-control-sm text-light bg-dark border-secondary"
+                  placeholder="🔍 Buscar patente, marca, modelo..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="col-md-3">
+                <select 
+                  className="form-select form-select-sm bg-dark text-light border-secondary"
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                >
+                  <option value="">Todos los tipos</option>
+                  <option value="VEHICULO">Vehículos</option>
+                  <option value="MAQUINARIA">Maquinarias</option>
+                </select>
+              </div>
+              <div className="col-md-4">
+                <select 
+                  className="form-select form-select-sm bg-dark text-light border-secondary"
+                  value={filterLocation}
+                  onChange={(e) => setFilterLocation(e.target.value)}
+                >
+                  <option value="">Todas las ubicaciones</option>
+                  {uniqueLocations.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+                </select>
+              </div>
+            </div>
 
+            {/* Tabla */}
+            {errorMsg && <div className="alert alert-danger py-2">{errorMsg}</div>}
             {loading ? (
-              <p className="text-muted mb-0">Cargando activos...</p>
+              <p className="text-muted text-center py-4">Cargando inventario...</p>
             ) : totalItems === 0 ? (
-              <p className="text-muted mb-0">No hay activos registrados.</p>
+              <p className="text-muted text-center py-4">No se encontraron resultados.</p>
             ) : (
               <>
                 <div className="table-responsive">
                   <table className="table table-dark table-hover table-sm align-middle mb-0">
-                    <thead>
+                    <thead className="table-secondary text-dark">
                       <tr>
-                        <th
-                          style={{ cursor: "pointer" }}
-                          onClick={() => handleSort("id")}
-                        >
-                          ID <span className="small">{sortIcon("id")}</span>
-                        </th>
-                        <th
-                          style={{ cursor: "pointer" }}
-                          onClick={() => handleSort("codigo")}
-                        >
-                          Código{" "}
-                          <span className="small">{sortIcon("codigo")}</span>
-                        </th>
-                        <th
-                          style={{ cursor: "pointer" }}
-                          onClick={() => handleSort("tipo")}
-                        >
-                          Tipo{" "}
-                          <span className="small">{sortIcon("tipo")}</span>
-                        </th>
-                        <th
-                          style={{ cursor: "pointer" }}
-                          onClick={() => handleSort("marca")}
-                        >
-                          Marca{" "}
-                          <span className="small">{sortIcon("marca")}</span>
-                        </th>
-                        <th
-                          style={{ cursor: "pointer" }}
-                          onClick={() => handleSort("modelo")}
-                        >
-                          Modelo{" "}
-                          <span className="small">{sortIcon("modelo")}</span>
-                        </th>
+                        <th style={{cursor: "pointer"}} onClick={() => handleSort("id")}>ID {sortIcon("id")}</th>
+                        <th style={{cursor: "pointer"}} onClick={() => handleSort("codigo")}>Patente / Serie {sortIcon("codigo")}</th>
+                        <th style={{cursor: "pointer"}} onClick={() => handleSort("tipo")}>Tipo {sortIcon("tipo")}</th>
+                        <th style={{cursor: "pointer"}} onClick={() => handleSort("marca")}>Marca {sortIcon("marca")}</th>
+                        <th style={{cursor: "pointer"}} onClick={() => handleSort("modelo")}>Modelo {sortIcon("modelo")}</th>
                         <th>Ubicación</th>
-                        <th style={{ width: 190 }}>Acciones</th>
+                        <th className="text-end">Acciones</th>
                       </tr>
                     </thead>
                     <tbody>
                       {activosPagina.map((a) => (
                         <tr key={a.id}>
-                          <td>{a.id}</td>
-                          <td>{a.codigo}</td>
-                          <td>{a.tipo}</td>
+                          <td className="text-muted small">#{a.id}</td>
+                          <td><span className="fw-bold font-monospace text-warning">{a.codigo}</span></td>
+                          <td>
+                            <span className={`badge ${a.tipo === 'MAQUINARIA' ? 'bg-secondary' : 'bg-primary'} bg-opacity-75`}>
+                              {a.tipo === 'VEHICULO' ? 'Vehículo' : 'Maquinaria'}
+                            </span>
+                          </td>
                           <td>{a.marca}</td>
                           <td>{a.modelo}</td>
-                          <td>{a.ubicacion}</td>
-                          <td>
-                            <button
-                              className="btn btn-outline-light btn-sm me-2"
-                              onClick={() =>
-                                navigate(`/activos/${a.id}/editar`)
-                              }
-                            >
-                              Editar
+                          <td><small className="text-light">{a.ubicacion}</small></td>
+                          <td className="text-end">
+                            <button className="btn btn-link text-info p-0 me-3" title="Editar" onClick={() => navigate(`/activos/${a.id}/editar`)}>
+                              <IconEdit />
                             </button>
-                            <button
-                              className="btn btn-danger btn-sm"
-                              onClick={() => abrirConfirm(a)}
-                            >
-                              Eliminar
+                            <button className="btn btn-link text-danger p-0" title="Eliminar" onClick={() => abrirConfirm(a)}>
+                              <IconTrash />
                             </button>
-                           
-
                           </td>
                         </tr>
                       ))}
@@ -351,112 +346,40 @@ function Activos() {
                 </div>
 
                 {/* Paginación */}
-                <div className="d-flex justify-content-between align-items-center mt-3">
-                  <p className="small text-muted mb-0">
-                    Mostrando {startIndex + 1}-{endIndex} de {totalItems}{" "}
-                    registros
-                  </p>
-
+                <div className="d-flex justify-content-between align-items-center mt-3 pt-3 border-top border-secondary">
+                  <span className="small text-muted">Mostrando {startIndex + 1}-{endIndex} de {totalItems}</span>
                   <div className="d-flex align-items-center gap-2">
-                    <label className="small text-muted me-1 mb-0">
-                      Filas por página:
-                    </label>
-                    <select
-                      className="form-select form-select-sm bg-dark text-light border-secondary"
-                      value={pageSize}
-                      onChange={handlePageSizeChange}
-                    >
-                      <option value={10}>10</option>
-                      <option value={25}>25</option>
-                      <option value={50}>50</option>
-                    </select>
-
-                    <button
-                      className="btn btn-outline-light btn-sm"
-                      disabled={currentPageSafe === 1}
-                      onClick={() =>
-                        handlePageChange(currentPageSafe - 1)
-                      }
-                    >
-                      «
-                    </button>
-
-                    <span className="small text-muted">
-                      Página {currentPageSafe} de {totalPages}
-                    </span>
-
-                    <button
-                      className="btn btn-outline-light btn-sm"
-                      disabled={currentPageSafe === totalPages}
-                      onClick={() =>
-                        handlePageChange(currentPageSafe + 1)
-                      }
-                    >
-                      »
-                    </button>
+                    <button className="btn btn-outline-secondary btn-sm" disabled={currentPageSafe === 1} onClick={() => handlePageChange(currentPageSafe - 1)}>« Anterior</button>
+                    <button className="btn btn-outline-secondary btn-sm" disabled={currentPageSafe === totalPages} onClick={() => handlePageChange(currentPageSafe + 1)}>Siguiente »</button>
                   </div>
                 </div>
               </>
             )}
-
-            {/* Modal de confirmación */}
-            {showConfirm && activoAEliminar && (
-              <div
-                className="modal fade show"
-                style={{
-                  display: "block",
-                  backgroundColor: "rgba(0,0,0,0.6)",
-                }}
-              >
-                <div className="modal-dialog">
-                  <div className="modal-content bg-dark text-light border-secondary">
-                    <div className="modal-header border-secondary">
-                      <h5 className="modal-title">
-                        Confirmar eliminación
-                      </h5>
-                      <button
-                        type="button"
-                        className="btn-close btn-close-white"
-                        onClick={cerrarConfirm}
-                      ></button>
-                    </div>
-                    <div className="modal-body">
-                      <p className="mb-1">
-                        ¿Seguro que quieres eliminar el activo{" "}
-                        <strong>{activoAEliminar.codigo}</strong> (
-                        {activoAEliminar.marca}{" "}
-                        {activoAEliminar.modelo})?
-                      </p>
-                      <p
-                        className="small"
-                        style={{ color: "rgba(255,255,255,0.75)" }}
-                      >
-                        Esta acción no se puede deshacer.
-                      </p>
-                    </div>
-                    <div className="modal-footer border-secondary">
-                      <button
-                        type="button"
-                        className="btn btn-outline-light btn-sm"
-                        onClick={cerrarConfirm}
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-danger btn-sm"
-                        onClick={confirmarEliminacion}
-                      >
-                        Eliminar definitivamente
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
+
+      {/* Modal Confirmación */}
+      {showConfirm && activoAEliminar && (
+        <div className="modal fade show d-block" style={{ backgroundColor: "rgba(0,0,0,0.7)" }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content bg-dark text-white border-secondary">
+              <div className="modal-header border-secondary">
+                <h5 className="modal-title">Eliminar Activo</h5>
+                <button type="button" className="btn-close btn-close-white" onClick={cerrarConfirm}></button>
+              </div>
+              <div className="modal-body">
+                <p>¿Estás seguro de eliminar <strong>{activoAEliminar.codigo}</strong>?</p>
+                <p className="small text-muted mb-0">Esta acción no se puede deshacer.</p>
+              </div>
+              <div className="modal-footer border-secondary">
+                <button type="button" className="btn btn-secondary btn-sm" onClick={cerrarConfirm}>Cancelar</button>
+                <button type="button" className="btn btn-danger btn-sm" onClick={confirmarEliminacion}>Sí, eliminar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
