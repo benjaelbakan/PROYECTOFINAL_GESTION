@@ -1,5 +1,7 @@
 const API_URL = "http://localhost:3001/api"; // ajusta según tu backend
 
+
+
 export async function listarActivos() {
   const res = await fetch(`${API_URL}/activos`);
   if (!res.ok) throw new Error("Error al listar activos");
@@ -21,3 +23,20 @@ export async function crearActivo(data) {
   if (!res.ok) throw new Error("Error al crear activo");
   return res.json();
 }
+
+export async function obtenerActivo(id) {
+  const res = await fetch(`${API_URL}/activos/${id}`);
+  if (!res.ok) throw new Error("Error al obtener el activo");
+  return res.json();
+}
+
+export async function actualizarActivo(id, data) {
+  const res = await fetch(`${API_URL}/activos/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Error al actualizar el activo");
+  return res.json();
+}
+

@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { listarActivos, eliminarActivo } from "../../services/RF01_activos.service.js";
 import ActivosTable from "../../components/RF01_ActivosTable.jsx";
 
-
 function Activos() {
   const [activos, setActivos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,6 +36,11 @@ function Activos() {
     }
   };
 
+  // ✅ Nueva función para editar
+  const handleEditar = (activo) => {
+    navigate(`/activos/editar/${activo.id}`, { state: { activo } });
+  };
+
   useEffect(() => {
     cargarActivos();
   }, []);
@@ -60,7 +64,11 @@ function Activos() {
             {loading ? (
               <p className="text-muted mb-0">Cargando activos...</p>
             ) : (
-              <ActivosTable activos={activos} onEliminar={handleEliminar} />
+              <ActivosTable
+                activos={activos}
+                onEliminar={handleEliminar}
+                onEditar={handleEditar} // pasar la función a la tabla
+              />
             )}
           </div>
         </div>

@@ -1,86 +1,117 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
+import { crearActivo, obtenerActivo, actualizarActivo } from "../services/RF01_activos.service.js";
 
-export default function ActivoForm({ initialData = {}, onSubmit }) {
+function ActivoForm() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { id } = useParams(); // si existe, es edición
+
   const [activo, setActivo] = useState({
-    codigo: initialData.codigo || "",
-    tipo: initialData.tipo || "",
-    marca: initialData.marca || "",
-    modelo: initialData.modelo || "",
-    ubicacion: initialData.ubicacion || ""
+    codigo: "",
+    tipo: "",
+    marca: "",
+    modelo: "",
+    anio: "",
+    kilometraje_actual: "",
+    horas_uso_actual: "",
+    ubicacion: ""
   });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (location.state?.activo) {
+      const { id, fecha_creacion, ...cleanActivo } = location.state.activo;
+      setActivo(cleanActivo);
+    } else if (id) {
+      const cargarActivo = async () => {
+        setLoading(true);
+        try {
+          const data = await obtenerActivo(id);
+          if (data) {
+            const { id, fecha_creacion, ...cleanActivo } = data;
+            setActivo(cleanActivo);
+          }
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setLoading(false);
+        }
+      };
+      cargarActivo();
+    }
+  }, [id, location.state]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setActivo((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    setActivo((prev) => ({
+      ...prev,
+      [name]: type === "number" ? Number(value) : value
+    }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSubmit(activo);
+
+    // Solo enviar los campos que la DB espera
+    const activoToSend = {
+      codigo: activo.codigo,
+      tipo: activo.tipo,
+      marca: activo.marca,
+      modelo: activo.modelo,
+      anio: Number(activo.anio),
+      kilometraje_actual: Number(activo.kilometraje_actual),
+      horas_uso_actual: Number(activo.horas_uso_actual),
+      ubicacion: activo.ubicacion
+    };
+
+    try {
+      if (id) {
+        await actualizarActivo(id, activoToSend);
+      } else {
+        await crearActivo(activoToSend);
+      }
+      navigate("/activos");
+    } catch (err) {
+      console.error("Error al guardar el activo:", err);
+      alert("Error al guardar el activo");
+    }
   };
+
+  if (loading) return <p>Cargando activo...</p>;
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="mb-3">
-        <label className="form-label">Código</label>
-        <input
-          type="text"
-          name="codigo"
-          className="form-control"
-          value={activo.codigo}
-          onChange={handleChange}
-          required
-        />
-      </div>
-
-      <div className="mb-3">
-        <label className="form-label">Tipo</label>
-        <input
-          type="text"
-          name="tipo"
-          className="form-control"
-          value={activo.tipo}
-          onChange={handleChange}
-          required
-        />
-      </div>
-
-      <div className="mb-3">
-        <label className="form-label">Marca</label>
-        <input
-          type="text"
-          name="marca"
-          className="form-control"
-          value={activo.marca}
-          onChange={handleChange}
-        />
-      </div>
-
-      <div className="mb-3">
-        <label className="form-label">Modelo</label>
-        <input
-          type="text"
-          name="modelo"
-          className="form-control"
-          value={activo.modelo}
-          onChange={handleChange}
-        />
-      </div>
-
-      <div className="mb-3">
-        <label className="form-label">Ubicación</label>
-        <input
-          type="text"
-          name="ubicacion"
-          className="form-control"
-          value={activo.ubicacion}
-          onChange={handleChange}
-        />
-      </div>
-
-      <button type="submit" className="btn btn-primary">
-        Guardar
-      </button>
-    </form>
+    <div className="container mt-4">
+      <h3>{id ? "Editar Activo" : "Nuevo Activo"}</h3>
+      <form onSubmit={handleSubmit}>
+        {[
+          { label: "Código", name: "codigo" },
+          { label: "Tipo", name: "tipo" },
+          { label: "Marca", name: "marca" },
+          { label: "Modelo", name: "modelo" },
+          { label: "Año", name: "anio", type: "number" },
+          { label: "Kilometraje actual", name: "kilometraje_actual", type: "number" },
+          { label: "Horas de uso actual", name: "horas_uso_actual", type: "number" },
+          { label: "Ubicación", name: "ubicacion" }
+        ].map((field) => (
+          <div className="mb-3" key={field.name}>
+            <label className="form-label">{field.label}</label>
+            <input
+              type={field.type || "text"}
+              name={field.name}
+              className="form-control"
+              value={activo[field.name] ?? ""}
+              onChange={handleChange}
+              required
+            />
+          </div>
+        ))}
+        <button type="submit" className="btn btn-success">
+          Guardar
+        </button>
+      </form>
+    </div>
   );
 }
+
+export default ActivoForm;
