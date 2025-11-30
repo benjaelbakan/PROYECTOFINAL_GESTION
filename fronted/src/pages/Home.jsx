@@ -15,9 +15,9 @@ export default function Home() {
         </button>
         <button
           className="list-group-item list-group-item-action"
-          onClick={() => navigate("/tareas")}
+          onClick={() => navigate("/ordenes_trabajo")}
         >
-          Gestión de Tareas
+          Gestión de Ordenes de Trabajo
         </button>
         <button
           className="list-group-item list-group-item-action"
