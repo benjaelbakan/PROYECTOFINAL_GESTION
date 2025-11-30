@@ -1,19 +1,18 @@
-import express from "express";
+import { Router } from "express";
 import {
-  getActivos,
-  getActivoById,
-  createActivo,
-  updateActivo,
-  deleteActivo
+  listar,
+  crear,
+  obtener,
+  actualizar,
+  eliminar,
 } from "../controllers/RF01_activos.controller.js";
 
-const router = express.Router();
+const router = Router();
 
-/**  RUTAS OFICIALES RF01 - GESTIÓN DE ACTIVOS  **/
-router.get("/", getActivos);
-router.get("/:id", getActivoById);
-router.post("/", createActivo);
-router.put("/:id", updateActivo);
-router.delete("/:id", deleteActivo);
+router.get("/", listar);
+router.post("/", crear);
+router.get("/:id", obtener);
+router.put("/:id", actualizar);
+router.delete("/:id", eliminar);
 
 export default router;
