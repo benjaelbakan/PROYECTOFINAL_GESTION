@@ -1,4 +1,4 @@
-import { Routes, Route, NavLink } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import Activos from "./pages/Activos";
 import CrearActivo from "./pages/CrearActivo";
 import EditarActivo from "./pages/EditarActivo";
@@ -7,97 +7,31 @@ import GenerarOT from "./pages/GenerarOT";
 import OrdenesTrabajo from "./pages/OrdenesTrabajo.jsx";
 import DetalleOT from "./pages/DetalleOT.jsx";
 import Planificacion from "./pages/Planificacion";
+import HistorialAlertas from "./pages/HistorialAlertas";
+import SuscribirAlertas from "./pages/SuscribirAlertas";
+import GerenteDashboard from "./pages/GerenteDashboard";
+import DashboardLayout from "./components/DashboardLayout";
+import LoginGerente from './pages/LoginGerente';
 
 function App() {
   return (
-    <div className="bg-dark min-vh-100 text-light">
-      {/* NAVBAR */}
-      <nav className="navbar navbar-dark bg-dark border-bottom border-secondary">
-        <div className="container d-flex justify-content-between">
-          <div className="navbar-brand d-flex align-items-center">
-            <img
-              src={logoVictor}
-              alt="Victor Morales - El partner de tu taller"
-              style={{ height: 36, marginRight: 10 }}
-            />
-            <div className="d-flex flex-column">
-              <span className="fw-semibold">BíoTrans Ltda</span>
-              <small className="text-secondary">
-                Victor Morales · El partner de tu taller
-              </small>
-            </div>
-          </div>
+    <Routes>
+      <Route path="/login-gerente" element={<LoginGerente />} />
 
-          <div>
-            <NavLink
-              to="/"
-              className={({ isActive }) =>
-                "btn btn-sm me-2 " +
-                (isActive ? "btn-light text-dark" : "btn-outline-light")
-              }
-            >
-              Activos
-            </NavLink>
-
-            <NavLink
-              to="/activos/nuevo"
-              className={({ isActive }) =>
-                "btn btn-sm " +
-                (isActive ? "btn-success" : "btn-outline-success")
-              }
-            >
-              Nuevo Activo
-            </NavLink>
-
-            <NavLink
-              to="/ot/nueva"
-              className={({ isActive }) =>
-                "btn btn-sm ms-2 " +
-                (isActive ? "btn-success" : "btn-outline-success")
-              }
-            >
-              Generar OT
-            </NavLink>
-
-            <NavLink
-              to="/ot"
-              className={({ isActive }) =>
-                "btn btn-sm ms-2 " +
-                (isActive ? "btn-info text-dark" : "btn-outline-info")
-              }
-            >
-              Lista OT
-            </NavLink>
-
-            {/* NUEVO: botón para Planificación */}
-            <NavLink
-              to="/planificacion"
-              className={({ isActive }) =>
-                "btn btn-sm ms-2 " +
-                (isActive ? "btn-warning text-dark" : "btn-outline-warning")
-              }
-            >
-              Planificación
-            </NavLink>
-          </div>
-        </div>
-      </nav>
-
-      {/* CONTENIDO */}
-      <main className="py-4">
-        <div className="container">
-          <Routes>
-            <Route path="/" element={<Activos />} />
-            <Route path="/activos/nuevo" element={<CrearActivo />} />
-            <Route path="/activos/:id/editar" element={<EditarActivo />} />
-            <Route path="/planificacion" element={<Planificacion />} />
-            <Route path="/ot/nueva" element={<GenerarOT />} />
-            <Route path="/ot" element={<OrdenesTrabajo />} />
-            <Route path="/ot/:id" element={<DetalleOT />} />
-          </Routes>
-        </div>
-      </main>
-    </div>
+      {/* Rutas que usan el layout principal (sidebar + topbar) */}
+      <Route element={<DashboardLayout />}>
+        <Route path="/" element={<Activos />} />
+        <Route path="/activos/nuevo" element={<CrearActivo />} />
+        <Route path="/activos/:id/editar" element={<EditarActivo />} />
+        <Route path="/planificacion" element={<Planificacion />} />
+        <Route path="/ot/nueva" element={<GenerarOT />} />
+        <Route path="/ot" element={<OrdenesTrabajo />} />
+        <Route path="/ot/:id" element={<DetalleOT />} />
+        <Route path="/historial-alertas" element={<HistorialAlertas />} />
+        <Route path="/suscribir-alertas" element={<SuscribirAlertas />} />
+        <Route path="/gerente" element={<GerenteDashboard />} />
+      </Route>
+    </Routes>
   );
 }
 

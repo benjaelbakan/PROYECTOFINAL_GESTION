@@ -2,6 +2,12 @@ const express = require("express");
 const cors = require("cors");
 const pool = require("./db");
 const planesRoutes = require("./routes/planes");
+const alertasRoutes = require("./routes/alertas");
+const estadisticasRoutes = require('./routes/estadisticas');
+const { router: authRoutes } = require('./routes/auth');
+const cron = require('node-cron');
+const axios = require('axios');
+
 
 const app = express();
 
@@ -15,11 +21,16 @@ app.use(express.json());
 
 // Rutas montadas con routers externos
 app.use("/api/planes", planesRoutes);
+app.use("/api/alertas", alertasRoutes);
+app.use('/api/estadisticas', estadisticasRoutes);
+app.use('/api/auth', authRoutes);
 
 // Ruta de prueba
 app.get("/", (req, res) => {
   res.send("API de mantenimiento funcionando 😎");
 });
+
+// El cron se registra después de arrancar el servidor (ver más abajo)
 
 // ====================== ACTIVOS ======================
 
@@ -186,18 +197,22 @@ app.post("/api/ot", async (req, res) => {
       ]
     );
 
-    // Historial de creación
-    await pool.query(
-      `INSERT INTO ot_historial
-       (ot_id, descripcion_cambio, estado, trabajador_asignado)
-       VALUES (?, ?, ?, ?)`,
-      [
-        result.insertId,
-        "Creación de OT",
-        "pendiente",
-        trabajadorAsignado || null,
-      ]
-    );
+    // Historial de creación (opcional, no falla si tabla no existe)
+    try {
+      await pool.query(
+        `INSERT INTO ot_historial
+         (ot_id, descripcion_cambio, estado, trabajador_asignado)
+         VALUES (?, ?, ?, ?)`,
+        [
+          result.insertId,
+          "Creación de OT",
+          "pendiente",
+          trabajadorAsignado || null,
+        ]
+      );
+    } catch (e) {
+      console.warn('Historial OT no registrado (tabla ot_historial no existe):', e.message);
+    }
 
     return res.status(201).json({
       id: result.insertId,
@@ -285,12 +300,17 @@ app.put("/api/ot/:id/estado", async (req, res) => {
     if (trabajadorAsignado !== undefined)
       descripcion += `, trabajador -> ${trabajadorAsignado}`;
 
-    await pool.query(
-      `INSERT INTO ot_historial
-        (ot_id, descripcion_cambio, estado, trabajador_asignado)
-       VALUES (?, ?, ?, ?)`,
-      [id, descripcion, estado || null, trabajadorAsignado || null]
-    );
+    // Historial de actualización (opcional)
+    try {
+      await pool.query(
+        `INSERT INTO ot_historial
+          (ot_id, descripcion_cambio, estado, trabajador_asignado)
+         VALUES (?, ?, ?, ?)`,
+        [id, descripcion, estado || null, trabajadorAsignado || null]
+      );
+    } catch (e) {
+      console.warn('Historial OT no registrado:', e.message);
+    }
 
     res.json({ message: "OT actualizada correctamente" });
   } catch (error) {
@@ -303,6 +323,11 @@ app.put("/api/ot/:id/estado", async (req, res) => {
 app.get("/api/ot/:id/historial", async (req, res) => {
   try {
     const { id } = req.params;
+    // Verificar si tabla existe
+    const [tables] = await pool.query("SHOW TABLES LIKE 'ot_historial'");
+    if (tables.length === 0) {
+      return res.json({ ok: true, historial: [], message: 'Tabla ot_historial no existe' });
+    }
     const [rows] = await pool.query(
       `SELECT * FROM ot_historial
        WHERE ot_id = ?
@@ -342,3 +367,27 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Backend corriendo en puerto ${PORT}`);
 });
+
+// ===== CRON JOB DESHABILITADO =====
+// El envío de alertas ahora se hace manualmente o cuando los usuarios se suscriben
+// Si quieres habilitar envío automático diario, descomenta esto y cambia '* * * * *' a '0 9 * * *'
+/*
+cron.schedule('* * * * *', () => {
+  console.log('Verificando alertas de mantenimiento...');
+  const url = `http://127.0.0.1:${PORT}/api/alertas/enviar-alertas`;
+
+  axios
+    .get(url)
+    .then((response) => {
+      console.log('Alertas enviadas correctamente:', response.data);
+    })
+    .catch((error) => {
+      console.error('Error al enviar alertas:', error && error.message ? error.message : error);
+      if (error && error.response) {
+        console.error('Axios response status:', error.response.status);
+        console.error('Axios response data:', error.response.data);
+      }
+      if (error && error.stack) console.error(error.stack);
+    });
+});
+*/
