@@ -147,46 +147,13 @@ router.get('/enviar-alertas', async (req, res) => {
       return res.json({ ok: true, alertas, destinatarios, ...extra });
     };
 
-    // Brevo (prioridad)
-    if (brevoKey && suscriptores.length > 0) {
-      try {
-        const toList = suscriptores.map(s => ({ email: s.email }));
-        const senderEmail = brevoFrom || suscriptores[0].email;
-        const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
-          method: 'POST',
-          headers: { 'api-key': brevoKey, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sender: { email: senderEmail }, to: toList, subject: registroBase.asunto, htmlContent: html })
-        });
-        const brevoText = await brevoRes.text();
-        let brevoBody = null;
-        try { brevoBody = JSON.parse(brevoText); } catch (e) { brevoBody = brevoText; }
-        if (!brevoRes.ok) throw new Error(`Brevo status ${brevoRes.status}: ${brevoText}`);
-
-        // Extraer messageId si está presente
-        const extractedMessageId = (brevoBody && typeof brevoBody === 'object' && brevoBody.messageId) ? brevoBody.messageId : null;
-
-        // Registrar la notificación con la respuesta de Brevo (proveedor_respuesta + message_id)
-        try {
-          await registrarNotificacion({
-            asunto: registroBase.asunto,
-            alertas_json: registroBase.alertas_json,
-            destinatarios: registroBase.destinatarios,
-            metodo: 'brevo',
-            enviado: 1,
-            error_envio: null,
-            proveedor_respuesta: brevoBody,
-            message_id: extractedMessageId,
-            tipo: registroBase.tipo
-          });
-        } catch (e) {
-          console.warn('No se pudo registrar notificación (Brevo):', e.message);
-        }
-
-        return res.json({ ok: true, alertas, destinatarios, message: 'Correo enviado vía Brevo', metodo: 'brevo', proveedor: brevoBody, messageId: extractedMessageId });
-      } catch (e) {
-        console.error('Fallo Brevo ->', e.message);
-        metodo = 'brevo-fallback';
-      }
+    // Brevo integration is disabled for safety. To avoid leaking secrets,
+    // we no longer call Brevo API from the backend. If you want to send
+    // emails from the server, enable SMTP or SendGrid. Alternatively,
+    // use EmailJS from the frontend to send client-side emails.
+    if (brevoKey) {
+      console.warn('BREVO_API_KEY present but Brevo integration is disabled by configuration. Skipping Brevo call.');
+      metodo = 'brevo-disabled';
     }
 
     // SendGrid (fallback si Brevo no se usó)
@@ -252,6 +219,58 @@ router.get('/enviar-alertas', async (req, res) => {
     }
   } catch (err) {
     console.error('Error /enviar-alertas:', err);
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// GET /api/alertas/proximas
+// Devuelve las alertas próximas y la lista de suscriptores sin enviar correos.
+router.get('/proximas', async (req, res) => {
+  try {
+    const umbralDias = parseInt(process.env.ALERT_UMBRAL_DIAS || '10', 10);
+    await pool.query(`CREATE TABLE IF NOT EXISTS suscriptores (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      email VARCHAR(255) NOT NULL UNIQUE,
+      activo TINYINT(1) DEFAULT 1,
+      fecha_suscripcion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
+
+    const [suscriptores] = await pool.query('SELECT email FROM suscriptores WHERE activo = 1');
+
+    let tableName = 'orden_trabajo';
+    try {
+      const [t1] = await pool.query("SHOW TABLES LIKE 'orden_trabajo'");
+      if (t1.length === 0) {
+        const [t2] = await pool.query("SHOW TABLES LIKE 'ordenes_trabajo'");
+        if (t2.length > 0) tableName = 'ordenes_trabajo';
+      }
+    } catch { tableName = 'ordenes_trabajo'; }
+
+    const [rows] = await pool.query(`
+      SELECT a.id AS activo_id, a.codigo, ot.fecha_programada
+      FROM ${tableName} ot
+      JOIN activos a ON a.id = ot.activo_id
+      WHERE ot.fecha_programada IS NOT NULL
+    `);
+
+    const hoy = new Date();
+    const alertas = [];
+    for (const r of rows) {
+      const fecha = new Date(r.fecha_programada);
+      const diff = Math.ceil((fecha - hoy) / (1000 * 3600 * 24));
+      if (diff <= umbralDias) {
+        let mensaje;
+        if (diff < 0) mensaje = `Mantenimiento atrasado hace ${Math.abs(diff)} día(s).`;
+        else if (diff === 0) mensaje = 'Mantenimiento programado para hoy.';
+        else mensaje = `Mantenimiento programado en ${diff} día(s).`;
+        alertas.push({ activo: r.codigo || `#${r.activo_id}`, mensaje, fecha_programada: r.fecha_programada, activo_id: r.activo_id });
+      }
+    }
+
+    const destinatarios = suscriptores.map(s => s.email).join(', ');
+    return res.json({ ok: true, alertas, destinatarios, suscriptores: suscriptores.map(s => s.email) });
+  } catch (err) {
+    console.error('Error /proximas:', err);
     return res.status(500).json({ ok: false, error: err.message });
   }
 });
@@ -416,24 +435,10 @@ router.post('/test-send', async (req, res) => {
       }
     }
 
-    // Si no hay SMTP o falló, intentar Brevo API (si está clave)
-    const brevoKey = process.env.BREVO_API_KEY;
-    const brevoFrom = process.env.BREVO_FROM;
-    if (brevoKey) {
-      try {
-        const toObj = [{ email: to }];
-        const sender = { email: brevoFrom || to };
-        const r = await fetch('https://api.brevo.com/v3/smtp/email', {
-          method: 'POST', headers: { 'api-key': brevoKey, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sender, to: toObj, subject: asunto, htmlContent: contenido })
-        });
-        const text = await r.text();
-        let body = null; try { body = JSON.parse(text); } catch { body = text; }
-        if (!r.ok) return res.status(502).json({ ok: false, metodo: 'brevo', status: r.status, body });
-        return res.json({ ok: true, metodo: 'brevo', proveedor: body });
-      } catch (e) {
-        console.error('Error Brevo en test-send:', e && e.message ? e.message : e);
-      }
+    // Brevo API usage disabled in backend. Skip calling Brevo.
+    if (process.env.BREVO_API_KEY) {
+      console.warn('Intentó usar BREVO_API_KEY en test-send pero la integración de Brevo está deshabilitada.');
+      // No retornamos error aquí; continuamos al fallback (Ethereal) o SMTP.
     }
 
     // Fallback Ethereal

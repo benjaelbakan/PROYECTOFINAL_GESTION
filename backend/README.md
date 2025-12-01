@@ -25,6 +25,11 @@ Endpoints importantes
 - `/api/ot` — órdenes de trabajo
 - `/api/activos` — activos
 
+Nota sobre envíos de correo
+- La integración con Brevo/Sendinblue fue DESHABILITADA en esta rama por seguridad (clave expuesta).
+- Para envíos recomendamos: configurar `SMTP_*` en `.env` o usar `SENDGRID_API_KEY`.
+- Alternativa cliente: usar EmailJS (enviar desde frontend) para no necesitar claves en el backend.
+
 Notas
 - Si haces `git mv fronted frontend` recuerda revisar las variables de `proxy` en `frontend/package.json` si existen rutas relativas.
 - Revisa `README.md` en la raíz y el `fronted/README.md` para instrucciones del frontend.

@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import emailjs from '@emailjs/browser';
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
@@ -18,6 +19,90 @@ function Activos() {
   const [alertaMsg, setAlertaMsg] = useState(null);
 
   const navigate = useNavigate();
+
+  const sendAlertsViaEmailJS = async () => {
+    setAlertaMsg(null);
+    try {
+      const res = await axios.get('/api/alertas/proximas');
+      if (!res.data || !res.data.ok) {
+        setAlertaMsg({ tipo: 'danger', texto: 'No se pudieron obtener alertas' });
+        return;
+      }
+      const { alertas, suscriptores } = res.data;
+      if (!alertas || alertas.length === 0) {
+        setAlertaMsg({ tipo: 'info', texto: 'No hay mantenimientos próximos' });
+        return;
+      }
+
+      const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+      const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+      const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+      if (!serviceId || !templateId || !publicKey) {
+        setAlertaMsg({ tipo: 'danger', texto: 'Faltan variables VITE_EMAILJS_* en fronted/.env.local' });
+        return;
+      }
+
+      let success = 0;
+      let fail = 0;
+
+      // Prepare html content (shared template). Use company env vars when available.
+      const makeHtml = (alertasList) => {
+        const items = alertasList.map(a => `<li><strong>${a.activo}</strong>: ${a.mensaje} (${new Date(a.fecha_programada).toLocaleDateString()})</li>`).join('');
+        const logoUrl = import.meta.env.VITE_COMPANY_LOGO_URL || 'https://placehold.co/150x32?text=Victor+Morales';
+        const companyPhone = import.meta.env.VITE_COMPANY_PHONE || '+56 9 1234 5678';
+        const companyEmail = import.meta.env.VITE_COMPANY_EMAIL || 'soporte@gestiona.local';
+        const website = import.meta.env.VITE_COMPANY_WEBSITE || '#';
+        return `
+<div style="font-family: system-ui, sans-serif, Arial; font-size: 14px; color: #212121">
+  <div style="max-width: 600px; margin: auto">
+    <div style="text-align: center; background-color: #ffc002; padding: 32px 16px; border-radius: 32px 32px 0 0;">
+      <a style="text-decoration: none; outline: none" href="${website}" target="_blank">
+        <img style="height: 32px; vertical-align: middle" height="32" src="${logoUrl}" alt="logo" />
+      </a>
+    </div>
+    <div style="padding: 16px">
+      <h1 style="font-size: 26px; margin-bottom: 26px">Mantenimientos próximos</h1>
+      <p>Estimado suscriptor,</p>
+      <p>A continuación se listan los mantenimientos próximos que requieren atención:</p>
+      <ul>${items}</ul>
+      <p>Por favor coordina con el equipo de mantenimiento si necesitas cambiar fechas o reagendar.</p>
+    </div>
+    <div style="text-align: center; background-color: #ffc002; padding: 16px; border-radius: 0 0 32px 32px;">
+      <p>Contacto: <strong><a href="mailto:${companyEmail}" style="text-decoration:none; color:#212121">${companyEmail}</a></strong></p>
+      <p>Tel: <strong><a href="tel:${companyPhone}" style="text-decoration:none; color:#212121">${companyPhone}</a></strong></p>
+    </div>
+  </div>
+</div>
+        `;
+      };
+
+      // Send to each subscriber sequentially (to avoid rate-limit bursts)
+      for (const mail of suscriptores) {
+        const templateParams = {
+          to_email: mail,
+          email: mail,
+          subject: `Mantenimientos próximos - ${new Date().toLocaleDateString()}`,
+          html: makeHtml(alertas)
+        };
+        try {
+          // eslint-disable-next-line no-await-in-loop
+          await emailjs.send(serviceId, templateId, templateParams, publicKey);
+          success += 1;
+        } catch (e) {
+          console.error('Error enviando a', mail, e);
+          fail += 1;
+        }
+        // small pause to be polite with provider
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise(r => setTimeout(r, 200));
+      }
+
+      setAlertaMsg({ tipo: 'success', texto: `Correos enviados: ${success}. Fallidos: ${fail}` });
+    } catch (err) {
+      console.error(err);
+      setAlertaMsg({ tipo: 'danger', texto: err.message || 'Error al verificar alertas' });
+    }
+  };
 
   useEffect(() => {
     axios.get("/api/activos")
@@ -108,7 +193,7 @@ function Activos() {
         <div className="card-header bg-primary text-white d-flex justify-content-between align-items-center">
           <h4 className="mb-0">Activos Registrados</h4>
           <div>
-            <button className="btn btn-warning btn-sm me-2" onClick={() => alert("Funcionalidad en desarrollo")}>
+            <button className="btn btn-warning btn-sm me-2" onClick={() => { if (confirm('Enviar alertas a los suscriptores ahora?')) sendAlertsViaEmailJS(); }}>
               Verificar Alertas
             </button>
             <button className="btn btn-success btn-sm me-2" onClick={exportExcel}>Excel</button>
@@ -197,7 +282,7 @@ function Activos() {
                 <button className="btn btn-danger" onClick={eliminar}>Eliminar</button>
               </div>
             </div>
-          </div>
+          </div>          git push origin RF05
         </div>
       )}
     </div>
