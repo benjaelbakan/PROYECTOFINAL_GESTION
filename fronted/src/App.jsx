@@ -7,6 +7,10 @@ import ActivoForm from "./components/RF01_ActivoForm.jsx";
 import OTs from "./pages/RF03_OT/RF03_OTs.jsx";
 import OTForm from "./components/RF03_OTForm.jsx";
 
+import Tareas from "./pages/RF04_Tareas/RF04_ListaTareas.jsx";
+import CrearTareas from "./pages/RF04_Tareas/RF04_RegistroTarea.jsx";
+import EditarTarea from "./pages/RF04_Tareas/RF04_RegistroTarea.jsx";
+
 function App() {
   return (
       <Routes>
@@ -18,8 +22,10 @@ function App() {
         <Route path="/ordenes_trabajo" element={<OTs />} />           {/* lista de OTs */}
         <Route path="/ordenes_trabajo/nuevo" element={<OTForm />} />  {/* crear OT */}
         <Route path="/ordenes_trabajo/editar/:id" element={<OTForm />} /> {/* editar OT */}
-
-
+        
+        <Route path="/tareas" element={<Tareas />} />
+        <Route path="/tareas/nueva" element={<CrearTareas />} />
+        <Route path="/tareas/editar/:id" element={<EditarTarea/>} /> 
         {/* Rutas adicionales */}
         {/* <Route path="/tareas" element={<Tareas />} /> */}
         {/* <Route path="/usuarios" element={<Usuarios />} /> */}

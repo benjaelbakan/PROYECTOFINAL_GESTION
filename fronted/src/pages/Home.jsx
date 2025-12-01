@@ -13,12 +13,21 @@ export default function Home() {
         >
           Gestión de Activos
         </button>
+
         <button
           className="list-group-item list-group-item-action"
           onClick={() => navigate("/ordenes_trabajo")}
         >
           Gestión de Ordenes de Trabajo
         </button>
+
+        <button
+          className="list-group-item list-group-item-action"
+          onClick={() => navigate("/tareas")}
+        >
+          Gestión de Tareas
+        </button>
+
         <button
           className="list-group-item list-group-item-action"
           onClick={() => navigate("/usuarios")}
@@ -26,6 +35,7 @@ export default function Home() {
           Gestión de Usuarios
         </button>
         {/* Agrega más botones según tus páginas */}
+        
       </div>
     </div>
   );

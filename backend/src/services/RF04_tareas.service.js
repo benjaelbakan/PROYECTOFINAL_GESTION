@@ -20,10 +20,10 @@ export const listarTareasDB = async () => {
     `SELECT
         id,
         orden_id,
-        descripcion_tarea AS descripcion,
-        insumos_utilizados AS insumos,
-        horas_trabajadas AS horas,
-        costo_asociado AS costo,
+        descripcion_tarea,
+        insumos_utilizados,
+        horas_trabajadas,
+        costo_asociado,
         fecha_realizacion
      FROM tar_tareas_realizadas
      ORDER BY fecha_realizacion DESC`

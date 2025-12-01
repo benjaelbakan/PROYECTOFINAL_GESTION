@@ -1,37 +1,36 @@
 import { Routes, Route } from "react-router-dom";
+import Home from "./pages/Home.jsx";
+import Activos from "./pages/RF01_Activos/RF01_Activos.jsx";
+import CrearActivo from "./pages/RF01_Activos/RF01_CrearActivo.jsx";
+import ActivoForm from "./components/RF01_ActivoForm.jsx";
 
-// RF01 - Activos
-import Activos from "../pages/RF01_Activos/RF01_Activos";
-import CrearActivo from "../pages/RF01_Activos/RF01_CrearActivo";
-import EditarActivo from "../pages/RF01_Activos/RF01_EditarActivo";
+import OTs from "./pages/RF03_OT/RF03_OTs.jsx";
+import OTForm from "./components/RF03_OTForm.jsx";
 
-// RF03 - OT
-import GenerarOT from "../pages/RF03_OT/GenerarOT";
+import Tareas from "./pages/RF04_Tareas/RF04_ListaTareas.jsx";
+import CrearTareas from "./pages/RF04_Tareas/RF04_RegistroTarea.jsx";
+import EditarTarea from "./pages/RF04_Tareas/RegistroTarea.jsx";
 
-// RF04 - Tareas
-import RegistroTarea from "../pages/RF04_Tareas/RegistroTarea";
-import ListaTareas from "../pages/RF04_Tareas/ListaTareas";
-
-// RF07 - KPI
-import RF07_KPI from "../pages/RF07_KPI/RF07_KPI";
-
-export default function AppRoutes() {
+function App() {
   return (
-    <Routes>
-      {/* RF01 Activos */}
-      <Route path="/" element={<Activos />} />
-      <Route path="/activos/nuevo" element={<CrearActivo />} />
-      <Route path="/activos/:id/editar" element={<EditarActivo />} />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/activos" element={<Activos />} />
+        <Route path="/activos/nuevo" element={<CrearActivo />} />
+        <Route path="/activos/editar/:id" element={<ActivoForm />} />
 
-      {/* RF03 OT */}
-      <Route path="/ot/nueva" element={<GenerarOT />} />
-
-      {/* RF04 Tareas */}
-      <Route path="/tareas/registro" element={<RegistroTarea />} />
-      <Route path="/tareas/lista" element={<ListaTareas />} />
-
-      {/* RF07 KPI */}
-      <Route path="/kpi" element={<RF07_KPI />} />
-    </Routes>
+        <Route path="/ordenes_trabajo" element={<OTs />} />           {/* lista de OTs */}
+        <Route path="/ordenes_trabajo/nuevo" element={<OTForm />} />  {/* crear OT */}
+        <Route path="/ordenes_trabajo/editar/:id" element={<OTForm />} /> {/* editar OT */}
+        
+        <Route path="/tareas" element={<Tareas />} />
+        <Route path="/tareas/nueva" element={<CrearTareas />} />
+        <Route path="/tareas/editar/:id" element={<EditarTarea />} /> 
+        {/* Rutas adicionales */}
+        {/* <Route path="/tareas" element={<Tareas />} /> */}
+        {/* <Route path="/usuarios" element={<Usuarios />} /> */}
+      </Routes>
   );
 }
+
+export default App;
