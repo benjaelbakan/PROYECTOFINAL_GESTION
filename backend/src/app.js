@@ -8,6 +8,8 @@ import cors from "cors";
 // RF01 - Activos
 import activosRoutes from "./routes/RF01_activos.routes.js";
 
+import planesRoutes from "./routes/RF02_planes.routes.js";
+
 // RF03 - Órdenes de Trabajo (tu archivo real)
 import ordenesRoutes from "./routes/RF03_OT.routes.js";
 
@@ -35,6 +37,7 @@ app.get("/", (req, res) => {
 // Registrar rutas
 // =========================
 app.use("/api/activos", activosRoutes);         // RF01
+app.use("/api/planes", planesRoutes);
 app.use("/api/ordenes", ordenesRoutes);         // RF03
 app.use("/api/tareas", tareasRoutes);           // RF04
 app.use("/api/historial", historialRoutes);     // RF06
@@ -47,6 +50,7 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`✅ Servidor Backend corriendo en puerto ${PORT}`);
   console.log(`👉 RF01 Activos:     http://localhost:${PORT}/api/activos`);
+  console.log(`👉 RF02 Planes:      http://localhost:${PORT}/api/planes`);
   console.log(`👉 RF03 Órdenes:     http://localhost:${PORT}/api/ordenes`);
   console.log(`👉 RF04 Tareas:      http://localhost:${PORT}/api/tareas`);
   console.log(`👉 RF06 Historial:   http://localhost:${PORT}/api/historial`);

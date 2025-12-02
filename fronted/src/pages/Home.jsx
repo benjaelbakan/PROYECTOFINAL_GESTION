@@ -30,9 +30,9 @@ export default function Home() {
 
         <button
           className="list-group-item list-group-item-action"
-          onClick={() => navigate("/usuarios")}
+          onClick={() => navigate("/planes")}
         >
-          Gestión de Usuarios
+          Gestión de Planes
         </button>
         {/* Agrega más botones según tus páginas */}
         
