@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 
 import {
   Chart as ChartJS,
@@ -30,7 +29,6 @@ ChartJS.register(
 
 export default function DashboardGeneral() {
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   const [kpis, setKpis] = useState({
     otsAbiertas: 0,
@@ -42,35 +40,27 @@ export default function DashboardGeneral() {
   const [topActivos, setTopActivos] = useState([]);
 
   useEffect(() => {
-    const cargarDatos = async () => {
-      try {
-        const base = axios.create({ baseURL: "http://localhost:3001/api" });
+    setTimeout(() => {
+      // ------------------- DATOS RANDOM -------------------
+      const randomKpis = {
+        otsAbiertas: Math.floor(Math.random() * 20) + 5,
+        alertasProximas: Math.floor(Math.random() * 10) + 1,
+        cumplimiento: Math.floor(Math.random() * 40) + 60, // 60–100%
+        tiempoMedio: Math.floor(Math.random() * 15) + 5,
+      };
 
-        const [otsAb, alertas, cumplimiento, tiempo, top] = await Promise.all([
-          base.get("/estadisticas/ots-abiertas"),
-          base.get("/estadisticas/alertas-proximas"),
-          base.get("/estadisticas/cumplimiento-mensual"),
-          base.get("/estadisticas/tiempo-medio-resolucion"),
-          base.get("/estadisticas/top-activos-ots")
-        ]);
+      const activosEjemplo = ["Camión 101", "Retroexcavadora 22", "Grúa 15", "Furgón 44", "Motoniveladora 18"];
 
-        setKpis({
-          otsAbiertas: otsAb.data.total || 0,
-          alertasProximas: alertas.data.total || 0,
-          cumplimiento: cumplimiento.data.porcentaje || 0,
-          tiempoMedio: tiempo.data.dias || 0,
-        });
+      const randomTop = activosEjemplo.map(a => ({
+        activo: a,
+        cantidad: Math.floor(Math.random() * 15) + 3,
+      }));
 
-        setTopActivos(top.data.top || []);
-      } catch (err) {
-        console.error(err);
-        setError("Error cargando datos del dashboard");
-      } finally {
-        setLoading(false);
-      }
-    };
+      setKpis(randomKpis);
+      setTopActivos(randomTop);
 
-    cargarDatos();
+      setLoading(false);
+    }, 600);
   }, []);
 
   // ---------------- GRÁFICOS ----------------
@@ -99,29 +89,23 @@ export default function DashboardGeneral() {
   return (
     <div className="app-container" style={{ padding: "20px" }}>
       
-        <h2
-            className="mb-4"
-            style={{
-                fontWeight: "700",
-                background: "#ffffff",
-                padding: "15px 20px",
-                borderRadius: "10px",
-                color: "#000000",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
-            }}
-            >
-            📊 Dashboard General
-        </h2>
+      <h2
+        className="mb-4"
+        style={{
+          fontWeight: "700",
+          background: "#ffffff",
+          padding: "15px 20px",
+          borderRadius: "10px",
+          color: "#000000",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
+        }}
+      >
+        📊 Dashboard General
+      </h2>
 
       {loading && <p style={{ color: "#444" }}>Cargando información...</p>}
 
-      {error && (
-        <div className="alert alert-danger" style={{ color: "#721c24" }}>
-          {error}
-        </div>
-      )}
-
-      {!loading && !error && (
+      {!loading && (
         <>
           {/* ----------------------- KPI CARDS ----------------------- */}
           <div
@@ -133,7 +117,6 @@ export default function DashboardGeneral() {
             }}
           >
 
-            {/* KPI card */}
             <div style={cardStyle}>
               <div style={iconCircle("#007bff20")}>📁</div>
               <div>
@@ -188,7 +171,6 @@ export default function DashboardGeneral() {
     </div>
   );
 }
-
 
 /* ---------------------- ESTILOS ---------------------- */
 const cardStyle = {

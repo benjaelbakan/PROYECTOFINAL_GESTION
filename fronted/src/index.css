@@ -1,32 +1,141 @@
-body {
-  margin: 0;
-  background-color: #0b1120;
-  color: #f8fafc;
+:root {
+  --bg-dark: #0f172a;       /* Fondo principal */
+  --bg-card: #1e293b;       /* Fondo de tarjetas y sidebar */
+  --text-primary: #f8fafc;  /* Texto blanco */
+  --text-secondary: #94a3b8;/* Texto gris */
+  --accent-color: #3b82f6;  /* Azul brillante */
+  --sidebar-width: 260px;
 }
 
-a {
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-dark);
+  color: var(--text-primary);
+  overflow-x: hidden;
+}
+
+/* --- Layout Principal --- */
+.dashboard-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.main-content {
+  margin-left: var(--sidebar-width);
+  flex: 1;
+  padding: 2rem;
+  width: calc(100% - var(--sidebar-width));
+}
+
+/* --- Sidebar --- */
+.sidebar {
+  width: var(--sidebar-width);
+  background-color: var(--bg-card);
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  border-right: 1px solid #334155;
+  display: flex;
+  flex-direction: column;
+  padding-top: 1rem;
+  z-index: 1000;
+}
+
+.sidebar-header {
+  padding: 0 1.5rem 1.5rem;
+  border-bottom: 1px solid #334155;
+  margin-bottom: 1rem;
+}
+
+.sidebar-brand {
+  color: var(--accent-color);
+  font-size: 1.5rem;
+  font-weight: 700;
   text-decoration: none;
 }
 
-/* Dar estilo a inputs, selects y textareas para tema oscuro */
-.form-control,
-.form-select {
-  background-color: #1e293b !important; /* gris oscuro */
-  border: 1px solid #475569 !important; /* borde gris */
-  color: #f8fafc !important; /* texto blanco */
-}
-
-.form-control:focus,
-.form-select:focus {
-  background-color: #0f172a !important;
-  border-color: #38bdf8 !important; /* azul bonito */
-  color: #fff !important;
-  box-shadow: none !important;
-}
-
-/* Labels claros para tema oscuro */
-.form-label {
-  color: #e5e7eb !important;   /* gris muy clarito */
-  font-size: 0.9rem;
+.nav-link {
+  color: var(--text-secondary);
+  padding: 0.8rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.2s;
+  text-decoration: none;
   font-weight: 500;
+}
+
+.nav-link:hover {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.nav-link.active {
+  color: white;
+  background: linear-gradient(90deg, rgba(59,130,246,0.1) 0%, transparent 100%);
+  border-left: 4px solid var(--accent-color);
+}
+
+/* --- Tarjetas y Contenedores --- */
+.card-custom {
+  background-color: var(--bg-card);
+  border: 1px solid #334155;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+  overflow: hidden; /* Para que la tabla no se salga */
+}
+
+.card-header-custom {
+  padding: 1.5rem;
+  border-bottom: 1px solid #334155;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-body-custom {
+  padding: 1.5rem;
+}
+
+/* --- Tablas --- */
+.table-custom {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--text-secondary);
+}
+
+.table-custom th {
+  text-align: left;
+  padding: 1rem;
+  background-color: #0f172a;
+  color: var(--text-primary);
+  font-weight: 600;
+  border-bottom: 2px solid #334155;
+}
+
+.table-custom td {
+  padding: 1rem;
+  border-bottom: 1px solid #334155;
+  vertical-align: middle;
+}
+
+.table-custom tr:hover td {
+  background-color: rgba(59, 130, 246, 0.05);
+  color: white;
+}
+
+/* --- Inputs Modernos --- */
+.form-control, .form-select {
+  background-color: #0f172a !important;
+  border: 1px solid #334155 !important;
+  color: white !important;
+  border-radius: 8px !important;
+  padding: 0.7rem 1rem !important;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: var(--accent-color) !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
 }
