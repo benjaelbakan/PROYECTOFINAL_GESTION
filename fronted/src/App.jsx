@@ -1,52 +1,205 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/Home.jsx";
+
+import Login from "./pages/Login.jsx";
+import RequireAuth from "./components/RequireAuth.jsx";
 
 // RF01 - Activos
 import Activos from "./pages/RF01_Activos/RF01_Activos.jsx";
 import CrearActivo from "./pages/RF01_Activos/RF01_CrearActivo.jsx";
 import ActivoForm from "./components/RF01_ActivoForm.jsx";
 
-// RF02 - Planes de Mantenimiento
+// RF02 - Planes
 import ListaPlanes from "./pages/RF02_Planes/RF02_ListaPlanes.jsx";
 import CrearPlan from "./pages/RF02_Planes/RF02_CrearPlan.jsx";
 import EditarPlan from "./pages/RF02_Planes/RF02_EditarPlan.jsx";
 
-// RF03 - Órdenes de Trabajo
+// RF03 - OT
 import OTs from "./pages/RF03_OT/RF03_OTs.jsx";
 import OTForm from "./components/RF03_OTForm.jsx";
+import EscanerMovil from "./pages/RF03_OT/RF03_Escaneo.jsx";
 
 // RF04 - Tareas
 import Tareas from "./pages/RF04_Tareas/RF04_ListaTareas.jsx";
 import CrearTareas from "./pages/RF04_Tareas/RF04_RegistroTarea.jsx";
 import EditarTarea from "./pages/RF04_Tareas/RF04_RegistroTarea.jsx";
 
+// Dashboard
+import GerenteDashboard from "./pages/RF06_Dashboard/RF06_GerenteDashboard.jsx";
 
+
+// ---------------------------------------------------------------
+// 🔐 PROTECCIÓN DE RUTAS POR ROL
+// ---------------------------------------------------------------
+function RoleRoute({ children, allowed }) {
+  const role = localStorage.getItem("rol");
+
+  if (!role) return <Navigate to="/login" replace />;
+
+  if (!allowed.includes(role)) return <Navigate to="/home" replace />;
+
+  return children;
+}
+
+
+// ---------------------------------------------------------------
+// APP PRINCIPAL
+// ---------------------------------------------------------------
 function App() {
   return (
-      <Routes>
-        <Route path="/" element={<Home />} />
+    <Routes>
 
-        {/* RF01 - Activos */}
-        <Route path="/activos" element={<Activos />} />
-        <Route path="/activos/nuevo" element={<CrearActivo />} />
-        <Route path="/activos/editar/:id" element={<ActivoForm />} />
+      {/* LOGIN */}
+      <Route path="/login" element={<Login />} />
 
-        {/* RF02 - Planes de Mantenimiento */}
-        <Route path="/planes" element={<ListaPlanes />} />               {/* lista de planes */}
-        <Route path="/planes/nuevo" element={<CrearPlan />} />           {/* crear plan */}
-        <Route path="/planes/editar/:id" element={<EditarPlan />} />     {/* editar plan */}
+      {/* REDIRECCIÓN AUTOMÁTICA A LOGIN */}
+      <Route path="/" element={<Navigate to="/login" />} />
 
-        {/* RF03 - Órdenes de Trabajo */}
-        <Route path="/ordenes_trabajo" element={<OTs />} />
-        <Route path="/ordenes_trabajo/nuevo" element={<OTForm />} />
-        <Route path="/ordenes_trabajo/editar/:id" element={<OTForm />} />
+      {/* HOME (acceso sólo si está logueado) */}
+      <Route
+        path="/home"
+        element={
+          <RequireAuth>
+            <Home />
+          </RequireAuth>
+        }
+      />
 
-        {/* RF04 - Tareas */}
-        <Route path="/tareas" element={<Tareas />} />
-        <Route path="/tareas/nueva" element={<CrearTareas />} />
-        <Route path="/tareas/editar/:id" element={<EditarTarea />} />
+      {/* ---------------------- RF01 - ACTIVOS ---------------------- */}
+      <Route
+        path="/activos"
+        element={
+          <RoleRoute allowed={["admin", "gerente"]}>
+            <Activos />
+          </RoleRoute>
+        }
+      />
 
-      </Routes>
+      <Route
+        path="/activos/nuevo"
+        element={
+          <RoleRoute allowed={["admin", "gerente"]}>
+            <CrearActivo />
+          </RoleRoute>
+        }
+      />
+
+      <Route
+        path="/activos/editar/:id"
+        element={
+          <RoleRoute allowed={["admin", "gerente"]}>
+            <ActivoForm />
+          </RoleRoute>
+        }
+      />
+
+      {/* ---------------------- RF02 - PLANES ---------------------- */}
+      <Route
+        path="/planes"
+        element={
+          <RoleRoute allowed={["admin", "gerente"]}>
+            <ListaPlanes />
+          </RoleRoute>
+        }
+      />
+
+      <Route
+        path="/planes/nuevo"
+        element={
+          <RoleRoute allowed={["admin", "gerente"]}>
+            <CrearPlan />
+          </RoleRoute>
+        }
+      />
+
+      <Route
+        path="/planes/editar/:id"
+        element={
+          <RoleRoute allowed={["admin", "gerente"]}>
+            <EditarPlan />
+          </RoleRoute>
+        }
+      />
+
+      {/* ---------------------- RF03 - OT ---------------------- */}
+      <Route
+        path="/ordenes_trabajo"
+        element={
+          <RoleRoute allowed={["admin", "mecanico"]}>
+            <OTs />
+          </RoleRoute>
+        }
+      />
+
+      <Route
+        path="/ordenes_trabajo/nuevo"
+        element={
+          <RoleRoute allowed={["admin", "mecanico"]}>
+            <OTForm />
+          </RoleRoute>
+        }
+      />
+
+      <Route
+        path="/ordenes_trabajo/editar/:id"
+        element={
+          <RoleRoute allowed={["admin", "mecanico"]}>
+            <OTForm />
+          </RoleRoute>
+        }
+      />
+
+      <Route
+        path="/escaner"
+        element={
+          <RoleRoute allowed={["admin", "mecanico"]}>
+            <EscanerMovil />
+          </RoleRoute>
+        }
+      />
+
+      {/* ---------------------- RF04 - TAREAS ---------------------- */}
+      <Route
+        path="/tareas"
+        element={
+          <RoleRoute allowed={["admin", "gerente"]}>
+            <Tareas />
+          </RoleRoute>
+        }
+      />
+
+      <Route
+        path="/tareas/nueva"
+        element={
+          <RoleRoute allowed={["admin", "gerente"]}>
+            <CrearTareas />
+          </RoleRoute>
+        }
+      />
+
+      <Route
+        path="/tareas/editar/:id"
+        element={
+          <RoleRoute allowed={["admin", "gerente"]}>
+            <EditarTarea />
+          </RoleRoute>
+        }
+      />
+
+      {/* ---------------------- DASHBOARD GERENTE ---------------------- */}
+      <Route
+        path="/gerente-dashboard"
+        element={
+          <RoleRoute allowed={["admin", "gerente"]}>
+            <GerenteDashboard />
+          </RoleRoute>
+        }
+      />
+
+      {/* RUTA NO ENCONTRADA */}
+      <Route path="*" element={<Navigate to="/login" />} />
+
+    </Routes>
   );
 }
 

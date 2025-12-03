@@ -13,11 +13,19 @@ import planesRoutes from "./routes/RF02_planes.routes.js";
 // RF03 - Órdenes de Trabajo (tu archivo real)
 import ordenesRoutes from "./routes/RF03_OT.routes.js";
 
+import escanerRoutes from "./routes/RF03_escaner.routes.js";
+import otRoutes from "./routes/RF03_OT.routes.js";
+
 // RF04 - Tareas
 import tareasRoutes from "./routes/RF04_tareas.routes.js";
 
 // RF06 - Historial / Fallas (tu archivo real)
 import historialRoutes from "./routes/RF06_historial.routes.js";
+
+import estadisticasRoutes from "./routes/RF06_estadisticas.routes.js";
+import alertasRoutes from "./routes/RF06_alertas.routes.js";
+
+import dashboardRoutes from "./routes/RF06_dashboard.routes.js";
 
 // RF07 - KPI
 import kpiRoutes from "./routes/RF07_kpi.routes.js";
@@ -38,9 +46,16 @@ app.get("/", (req, res) => {
 // =========================
 app.use("/api/activos", activosRoutes);         // RF01
 app.use("/api/planes", planesRoutes);
+app.use("/api/escaner", escanerRoutes);
+app.use("/api/ot", otRoutes);
 app.use("/api/ordenes", ordenesRoutes);         // RF03
 app.use("/api/tareas", tareasRoutes);           // RF04
 app.use("/api/historial", historialRoutes);     // RF06
+
+app.use("/api/estadisticas", estadisticasRoutes);
+app.use("/api/alertas", alertasRoutes);
+app.use("/api", dashboardRoutes);
+
 app.use("/api/kpi", kpiRoutes);                 // RF07
 
 // =========================
