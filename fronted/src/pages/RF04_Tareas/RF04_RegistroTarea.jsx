@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useParams } from "react-router-dom";
-
+import { useParams, useNavigate } from "react-router-dom";
 import axios from 'axios';
 
 function RegistroTarea() {
+  const navigate = useNavigate();
+  const { id } = useParams();
 
   const [formulario, setFormulario] = useState({
     orden_id: '',
@@ -16,19 +17,31 @@ function RegistroTarea() {
   const [mensaje, setMensaje] = useState(null);
   const [tareas, setTareas] = useState([]);
   const [verTareas, setVerTareas] = useState(false);
+  
+  // Nuevo estado para la lista desplegable de OTs
+  const [listaOTs, setListaOTs] = useState([]);
 
   // Modo edición
   const [modoEditar, setModoEditar] = useState(false);
   const [tareaId, setTareaId] = useState(null);
 
-  const { id } = useParams();
-
-  // Si viene ID desde la URL, cargar la tarea
   useEffect(() => {
+    cargarListas(); // Cargar OTs al iniciar
     if (id) {
       cargarTareaEnFormulario(id);
     }
   }, [id]);
+
+  // Cargar lista de OTs para el select
+  const cargarListas = async () => {
+    try {
+      // Usamos la ruta que devuelve todas las órdenes
+      const res = await axios.get("http://localhost:3001/api/ordenes/orden_trabajo");
+      setListaOTs(res.data);
+    } catch (error) {
+      console.error("Error al cargar OTs:", error);
+    }
+  };
 
   // Manejo de inputs
   const handleChange = (e) => {
@@ -45,13 +58,9 @@ function RegistroTarea() {
 
     try {
       const respuesta = await axios.post('http://localhost:3001/api/tareas', formulario);
-
       setMensaje({ tipo: 'success', texto: '✅ Tarea registrada correctamente (ID: ' + respuesta.data.id + ')' });
-
       setFormulario({ orden_id: '', descripcion: '', insumos: '', horas: '', costo: '' });
-
       cargarTareas();
-
     } catch (error) {
       console.error(error);
       setMensaje({ tipo: 'danger', texto: '❌ Error al registrar tarea.' });
@@ -65,22 +74,18 @@ function RegistroTarea() {
 
     try {
       await axios.put(`http://localhost:3001/api/tareas/${tareaId}`, formulario);
-
       setMensaje({ tipo: 'success', texto: '✏️ Tarea actualizada correctamente.' });
-
       setFormulario({ orden_id: '', descripcion: '', insumos: '', horas: '', costo: '' });
       setModoEditar(false);
       setTareaId(null);
-
       cargarTareas();
-
     } catch (error) {
       console.error(error);
       setMensaje({ tipo: 'danger', texto: '❌ Error al actualizar tarea.' });
     }
   };
 
-  // Obtener lista de tareas
+  // Obtener lista de tareas (historial)
   const cargarTareas = async () => {
     try {
       const respuesta = await axios.get('http://localhost:3001/api/tareas');
@@ -96,8 +101,6 @@ function RegistroTarea() {
   const cargarTareaEnFormulario = async (id) => {
     try {
       const respuesta = await axios.get(`http://localhost:3001/api/tareas/${id}`);
-
-      // El backend devuelve un objeto, no un array
       const data = respuesta.data;
 
       setFormulario({
@@ -110,9 +113,7 @@ function RegistroTarea() {
 
       setTareaId(id);
       setModoEditar(true);
-
       setMensaje({ tipo: 'info', texto: `✏️ Editando tarea ID ${id}` });
-
     } catch (error) {
       console.error(error);
       setMensaje({ tipo: 'danger', texto: '❌ Error al cargar la tarea.' });
@@ -122,7 +123,6 @@ function RegistroTarea() {
   // Eliminar tarea
   const eliminarTarea = async (id) => {
     if (!window.confirm("¿Seguro que deseas eliminar esta tarea?")) return;
-
     try {
       await axios.delete(`http://localhost:3001/api/tareas/${id}`);
       cargarTareas();
@@ -132,153 +132,217 @@ function RegistroTarea() {
     }
   };
 
+  const inputClass = "form-control bg-dark text-white border-secondary focus-ring focus-ring-primary";
+  const selectClass = "form-select bg-dark text-white border-secondary focus-ring focus-ring-primary";
+  const labelClass = "form-label text-white-50 fw-semibold small";
+
   return (
-    <div className="container mt-4">
-
-      <div className="card bg-dark text-white border-secondary shadow">
-        <div className="card-header bg-primary">
-          <h4 className="mb-0">
-            🛠️ {modoEditar ? "Editar Tarea" : "RF04 - Registro de Tarea Realizada"}
-          </h4>
-        </div>
-        
-        <div className="card-body">
-
-          {mensaje && <div className={`alert alert-${mensaje.tipo}`}>{mensaje.texto}</div>}
-
-          {/* FORMULARIO */}
-          <form onSubmit={modoEditar ? handleActualizar : handleSubmit}>
-
-            <div className="mb-3">
-              <label className="form-label">ID Orden de Trabajo (OT)</label>
-              <input 
-                type="number"
-                className="form-control bg-secondary text-white"
-                name="orden_id"
-                value={formulario.orden_id}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <div className="mb-3">
-              <label className="form-label">Descripción</label>
-              <textarea
-                className="form-control bg-secondary text-white"
-                name="descripcion"
-                rows="3"
-                value={formulario.descripcion}
-                onChange={handleChange}
-                required
-              ></textarea>
-            </div>
-
-            <div className="mb-3">
-              <label className="form-label">Insumos</label>
-              <input 
-                type="text"
-                className="form-control bg-secondary text-white"
-                name="insumos"
-                value={formulario.insumos}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="row">
-              <div className="col-md-6 mb-3">
-                <label className="form-label">Horas</label>
-                <input 
-                  type="number"
-                  step="0.5"
-                  className="form-control bg-secondary text-white"
-                  name="horas"
-                  value={formulario.horas}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="col-md-6 mb-3">
-                <label className="form-label">Costo ($)</label>
-                <input 
-                  type="number"
-                  className="form-control bg-secondary text-white"
-                  name="costo"
-                  value={formulario.costo}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-
-            <button className="btn btn-success btn-lg w-100">
-              {modoEditar ? "✏️ Guardar Cambios" : "💾 Guardar Tarea"}
+    <div className="container mt-5">
+      
+      <div className="row justify-content-center">
+        <div className="col-12 col-lg-8">
+            
+          {/* --- BOTÓN VOLVER --- */}
+          <div className="mb-3">
+            <button 
+                className="btn btn-outline-secondary d-inline-flex align-items-center gap-2 text-white-50 hover-white"
+                onClick={() => navigate('/tareas')}
+            >
+                <i className="bi bi-arrow-left"></i>
+                Volver al Historial
             </button>
+          </div>
 
-            {modoEditar && (
-              <button
-                type="button"
-                className="btn btn-secondary w-100 mt-2"
-                onClick={() => {
-                  setModoEditar(false);
-                  setTareaId(null);
-                  setFormulario({ orden_id: '', descripcion: '', insumos: '', horas: '', costo: '' });
-                }}
-              >
-                ↩ Cancelar Edición
-              </button>
-            )}
+          <div className="card bg-dark border border-secondary shadow-lg rounded-4">
+            
+            {/* Header de la Card */}
+            <div className="card-header bg-transparent border-bottom border-secondary p-4">
+              <h4 className="mb-0 text-white d-flex align-items-center gap-2">
+                <i className={`bi ${modoEditar ? 'bi-pencil-square text-warning' : 'bi-hammer text-primary'}`}></i>
+                {modoEditar ? "Editar Registro de Tarea" : "Registro de Tarea Realizada"}
+              </h4>
+              <p className="text-secondary small mb-0 mt-1">
+                 Vincule la tarea realizada a una Orden de Trabajo existente.
+              </p>
+            </div>
+            
+            <div className="card-body p-4">
 
-          </form>
+              {mensaje && (
+                  <div className={`alert alert-${mensaje.tipo} d-flex align-items-center mb-4`}>
+                      <i className="bi bi-info-circle-fill me-2"></i>
+                      {mensaje.texto}
+                  </div>
+              )}
+
+              {/* FORMULARIO */}
+              <form onSubmit={modoEditar ? handleActualizar : handleSubmit}>
+
+                <div className="mb-3">
+                  <label className={labelClass}>Orden de Trabajo (OT)</label>
+                  <div className="input-group">
+                      <span className="input-group-text bg-dark border-secondary text-secondary"><i className="bi bi-list-check"></i></span>
+                      
+                      {/* SELECTOR DE OTs */}
+                      <select
+                        name="orden_id"
+                        className={selectClass}
+                        value={formulario.orden_id}
+                        onChange={handleChange}
+                        required
+                      >
+                        <option value="">Seleccione una Orden...</option>
+                        {listaOTs.map(ot => (
+                            <option key={ot.id} value={ot.id}>
+                                #{ot.id} - {ot.descripcion} ({ot.estado})
+                            </option>
+                        ))}
+                      </select>
+                  </div>
+                  <div className="form-text text-secondary small">Seleccione la OT a la cual pertenece esta labor.</div>
+                </div>
+
+                <div className="mb-3">
+                  <label className={labelClass}>Descripción del Trabajo Realizado</label>
+                  <textarea
+                    className={inputClass}
+                    name="descripcion"
+                    rows="3"
+                    placeholder="Detalle técnico de la labor..."
+                    value={formulario.descripcion}
+                    onChange={handleChange}
+                    required
+                  ></textarea>
+                </div>
+
+                <div className="mb-3">
+                  <label className={labelClass}>Insumos Utilizados</label>
+                  <input 
+                    type="text"
+                    className={inputClass}
+                    name="insumos"
+                    placeholder="Ej: Aceite, Filtros, Repuestos..."
+                    value={formulario.insumos}
+                    onChange={handleChange}
+                  />
+                </div>
+
+                <div className="row g-3">
+                  <div className="col-md-6">
+                    <label className={labelClass}>Horas Hombre</label>
+                    <div className="input-group">
+                        <span className="input-group-text bg-dark border-secondary text-secondary"><i className="bi bi-clock"></i></span>
+                        <input 
+                          type="number"
+                          step="0.5"
+                          className={inputClass}
+                          name="horas"
+                          placeholder="0.0"
+                          value={formulario.horas}
+                          onChange={handleChange}
+                        />
+                    </div>
+                  </div>
+
+                  <div className="col-md-6">
+                    <label className={labelClass}>Costo Mano de Obra/Extra ($)</label>
+                    <div className="input-group">
+                        <span className="input-group-text bg-dark border-secondary text-secondary">$</span>
+                        <input 
+                          type="number"
+                          className={inputClass}
+                          name="costo"
+                          placeholder="0"
+                          value={formulario.costo}
+                          onChange={handleChange}
+                        />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="d-grid gap-2 mt-4">
+                    <button className={`btn btn-lg ${modoEditar ? 'btn-warning' : 'btn-success'} fw-semibold shadow-sm`}>
+                      {modoEditar ? (
+                          <><i className="bi bi-pencil-square me-2"></i>Guardar Cambios</>
+                      ) : (
+                          <><i className="bi bi-save me-2"></i>Guardar Tarea</>
+                      )}
+                    </button>
+
+                    {modoEditar && (
+                      <button
+                        type="button"
+                        className="btn btn-outline-secondary"
+                        onClick={() => {
+                          setModoEditar(false);
+                          setTareaId(null);
+                          setFormulario({ orden_id: '', descripcion: '', insumos: '', horas: '', costo: '' });
+                          setMensaje(null);
+                        }}
+                      >
+                        Cancelar Edición
+                      </button>
+                    )}
+                </div>
+
+              </form>
+            </div>
+          </div>
 
           {/* VER TAREAS */}
-          <button className="btn btn-info w-100 mt-3" onClick={cargarTareas}>
-            📋 Ver Tareas Registradas
-          </button>
+          <div className="d-grid mt-4 mb-5">
+              <button 
+                className="btn btn-outline-info opacity-75" 
+                onClick={() => setVerTareas(!verTareas)}
+              >
+                {verTareas ? "Ocultar lista rápida" : "📋 Ver Tareas Registradas Recientemente"}
+              </button>
+          </div>
 
-          {/* TABLA */}
+          {/* TABLA DESPLEGABLE */}
           {verTareas && (
-            <div className="mt-4">
-              <h5>Listado de Tareas</h5>
-
-              <table className="table table-dark table-bordered table-striped mt-2">
-                <thead>
+            <div className="table-responsive rounded-4 shadow-sm bg-dark bg-gradient p-2 border border-secondary border-opacity-25 mb-5">
+              <table className="table table-dark table-striped table-hover table-borderless align-middle mb-0">
+                <thead className="bg-secondary bg-opacity-10 text-uppercase small">
                   <tr>
-                    <th>ID</th>
-                    <th>OT</th>
+                    <th className="py-3 ps-3">ID</th>
+                    <th>OT Relacionada</th>
                     <th>Descripción</th>
                     <th>Horas</th>
                     <th>Costo</th>
-                    <th>Acciones</th>
+                    <th className="text-end pe-3">Acciones</th>
                   </tr>
                 </thead>
 
                 <tbody>
                   {tareas.map((tarea) => (
                     <tr key={tarea.id}>
-                      <td>{tarea.id}</td>
-                      <td>{tarea.orden_id}</td>
-                      <td>{tarea.descripcion}</td>
-                      <td>{tarea.horas}</td>
-                      <td>{tarea.costo}</td>
+                      <td className="ps-3 fw-bold text-white-50">{tarea.id}</td>
                       <td>
+                        <span className="badge bg-primary bg-opacity-25 text-primary border border-primary-subtle rounded-pill">
+                            OT #{tarea.orden_id}
+                        </span>
+                      </td>
+                      <td className="text-truncate" style={{maxWidth: '150px'}}>{tarea.descripcion}</td>
+                      <td>{tarea.horas}h</td>
+                      <td className="text-success">${Number(tarea.costo).toLocaleString()}</td>
+                      <td className="text-end pe-3">
                         <button
-                          className="btn btn-warning btn-sm me-2"
+                          className="btn btn-sm btn-warning me-2"
                           onClick={() => cargarTareaEnFormulario(tarea.id)}
                         >
-                          ✏ Editar
+                          <i className="bi bi-pencil"></i>
                         </button>
-
                         <button
-                          className="btn btn-danger btn-sm"
+                          className="btn btn-sm btn-danger"
                           onClick={() => eliminarTarea(tarea.id)}
                         >
-                          🗑 Eliminar
+                          <i className="bi bi-trash"></i>
                         </button>
                       </td>
-
                     </tr>
                   ))}
                 </tbody>
-
               </table>
             </div>
           )}

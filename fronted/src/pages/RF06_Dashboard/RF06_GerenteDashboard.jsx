@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios'; // Importamos Axios
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -13,7 +14,7 @@ import {
   Legend
 } from 'chart.js';
 
-import { Line, Bar, Doughnut } from 'react-chartjs-2';
+import { Bar, Doughnut } from 'react-chartjs-2';
 
 ChartJS.register(
   CategoryScale,
@@ -29,6 +30,7 @@ ChartJS.register(
 
 export default function DashboardGeneral() {
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const [kpis, setKpis] = useState({
     otsAbiertas: 0,
@@ -40,179 +42,257 @@ export default function DashboardGeneral() {
   const [topActivos, setTopActivos] = useState([]);
 
   useEffect(() => {
-    setTimeout(() => {
-      // ------------------- DATOS RANDOM -------------------
-      const randomKpis = {
-        otsAbiertas: Math.floor(Math.random() * 20) + 5,
-        alertasProximas: Math.floor(Math.random() * 10) + 1,
-        cumplimiento: Math.floor(Math.random() * 40) + 60, // 60–100%
-        tiempoMedio: Math.floor(Math.random() * 15) + 5,
-      };
-
-      const activosEjemplo = ["Camión 101", "Retroexcavadora 22", "Grúa 15", "Furgón 44", "Motoniveladora 18"];
-
-      const randomTop = activosEjemplo.map(a => ({
-        activo: a,
-        cantidad: Math.floor(Math.random() * 15) + 3,
-      }));
-
-      setKpis(randomKpis);
-      setTopActivos(randomTop);
-
-      setLoading(false);
-    }, 600);
+    cargarDatosReales();
   }, []);
 
-  // ---------------- GRÁFICOS ----------------
+  const cargarDatosReales = async () => {
+    try {
+        setLoading(true);
+        
+        // 1. Pedimos Activos y OTs al backend
+        // CORREGIDO: Usamos la ruta '/api/ordenes/orden_trabajo' que usas en CrearPlan
+        const [resActivos, resOTs] = await Promise.all([
+            axios.get("http://localhost:3001/api/activos"),
+            axios.get("http://localhost:3001/api/ordenes/orden_trabajo") 
+        ]);
+
+        const activos = resActivos.data || [];
+        const ots = resOTs.data || [];
+
+        console.log("Datos cargados en Dashboard:", { activos: activos.length, ots: ots.length });
+
+        // --- CÁLCULO DE KPIs REALES ---
+
+        // 1. OTs Abiertas (Pendientes o En Proceso)
+        const abiertas = ots.filter(ot => 
+            ot.estado && (ot.estado.toLowerCase() === 'pendiente' || ot.estado.toLowerCase() === 'en_proceso')
+        ).length;
+
+        // 2. Alertas (OTs Vencidas)
+        const hoy = new Date();
+        const vencidas = ots.filter(ot => {
+            if (!ot.fecha_programada || ot.estado.toLowerCase() === 'completado') return false;
+            const fechaProg = new Date(ot.fecha_programada);
+            return fechaProg < hoy;
+        }).length;
+
+        // 3. Cumplimiento
+        const completadas = ots.filter(ot => ot.estado && ot.estado.toLowerCase() === 'completado').length;
+        const totalOTs = ots.length;
+        const porcentajeCumplimiento = totalOTs > 0 ? Math.round((completadas / totalOTs) * 100) : 0;
+
+        // 4. Costo Promedio
+        const costoTotal = ots.reduce((sum, ot) => sum + Number(ot.costo || 0), 0);
+        const costoPromedio = totalOTs > 0 ? Math.round(costoTotal / totalOTs) : 0;
+
+
+        // --- CÁLCULO DE TOP ACTIVOS ---
+        const conteoPorActivo = {};
+        ots.forEach(ot => {
+            const id = ot.activo_id;
+            if(id) conteoPorActivo[id] = (conteoPorActivo[id] || 0) + 1;
+        });
+
+        const ranking = Object.keys(conteoPorActivo).map(idActivo => {
+            const activo = activos.find(a => a.id == idActivo);
+            return {
+                nombre: activo ? `${activo.marca} ${activo.modelo}` : `Activo #${idActivo}`,
+                cantidad: conteoPorActivo[idActivo]
+            };
+        });
+
+        ranking.sort((a, b) => b.cantidad - a.cantidad);
+        const top5 = ranking.slice(0, 5);
+
+        setKpis({
+            otsAbiertas: abiertas,
+            alertasProximas: vencidas,
+            cumplimiento: porcentajeCumplimiento,
+            tiempoMedio: costoPromedio
+        });
+
+        setTopActivos(top5);
+
+    } catch (error) {
+        console.error("Error calculando dashboard:", error);
+        // Si falla, podrías intentar cargar datos de ejemplo o dejar en 0
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  // --- CONFIGURACIÓN DE GRÁFICOS ---
+  const commonOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { labels: { color: '#adb5bd' } }
+    },
+    scales: {
+      x: {
+        ticks: { color: '#adb5bd' },
+        grid: { color: '#495057', borderColor: '#495057' }
+      },
+      y: {
+        ticks: { color: '#adb5bd', precision: 0 },
+        grid: { color: '#495057', borderColor: '#495057' }
+      }
+    }
+  };
+
+  const doughnutOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom', labels: { color: '#adb5bd' } }
+    }
+  };
+
   const dataTopActivos = {
-    labels: topActivos.map(a => a.activo),
+    labels: topActivos.map(a => a.nombre),
     datasets: [
       {
-        label: "OTs por activo",
+        label: "Cantidad de OTs",
         data: topActivos.map(a => a.cantidad),
-        backgroundColor: "rgba(30,144,255,0.7)",
-        borderRadius: 8
+        backgroundColor: "rgba(13, 110, 253, 0.6)",
+        borderColor: "rgba(13, 110, 253, 1)",
+        borderWidth: 1,
+        borderRadius: 4
       }
     ]
   };
 
   const dataCumplimiento = {
-    labels: ["Cumplido", "Pendiente"],
+    labels: ["Completadas", "Pendientes/Otras"],
     datasets: [
       {
         data: [kpis.cumplimiento, 100 - kpis.cumplimiento],
-        backgroundColor: ["#00C49F", "#ECECEC"]
+        backgroundColor: ["#198754", "#343a40"],
+        borderColor: ["#198754", "#495057"],
+        borderWidth: 1
       }
     ]
   };
 
+  // Componente Tarjeta KPI
+  const KpiCard = ({ title, value, icon, color, subtext }) => (
+    <div className="col-12 col-md-6 col-xl-3">
+        <div className="card bg-dark border border-secondary shadow-lg rounded-4 h-100">
+            <div className="card-body d-flex align-items-center">
+                <div className={`rounded-3 p-3 me-3 bg-${color} bg-opacity-10 text-${color} d-flex align-items-center justify-content-center`} style={{width: '64px', height: '64px'}}>
+                    <i className={`bi ${icon} fs-2`}></i>
+                </div>
+                <div>
+                    <h6 className="text-secondary text-uppercase small mb-1">{title}</h6>
+                    <h2 className="text-white fw-bold mb-0">{value}</h2>
+                    {subtext && <small className="text-white-50" style={{fontSize: '0.75rem'}}>{subtext}</small>}
+                </div>
+            </div>
+        </div>
+    </div>
+  );
+
   return (
-    <div className="app-container" style={{ padding: "20px" }}>
+    <div className="container-fluid p-4">
       
-      <h2
-        className="mb-4"
-        style={{
-          fontWeight: "700",
-          background: "#ffffff",
-          padding: "15px 20px",
-          borderRadius: "10px",
-          color: "#000000",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
-        }}
-      >
-        📊 Dashboard General
-      </h2>
+      {/* Header */}
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <button 
+                className="btn btn-sm btn-outline-secondary mb-2 border-0 ps-0 text-white-50"
+                onClick={() => navigate('/home')}
+            >
+                <i className="bi bi-arrow-left me-2"></i> Volver al Inicio
+            </button>
+            <h2 className="text-white fw-bold mb-0 d-flex align-items-center">
+                <i className="bi bi-speedometer2 me-2 text-primary bg-primary bg-opacity-10 p-2 rounded-3"></i>
+                Dashboard Gerencial
+            </h2>
+            <p className="text-secondary mb-0 mt-1 small ms-1">Resumen en tiempo real de la base de datos.</p>
+        </div>
+        <button className="btn btn-dark border-secondary text-secondary btn-sm" onClick={cargarDatosReales}>
+             <i className="bi bi-arrow-clockwise me-1"></i> Actualizar
+        </button>
+      </div>
 
-      {loading && <p style={{ color: "#444" }}>Cargando información...</p>}
-
-      {!loading && (
+      {loading ? (
+        <div className="d-flex flex-column align-items-center justify-content-center py-5">
+            <div className="spinner-border text-primary" role="status"></div>
+            <p className="text-secondary mt-3">Analizando datos...</p>
+        </div>
+      ) : (
         <>
-          {/* ----------------------- KPI CARDS ----------------------- */}
-          <div
-            className="row mb-4"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
-              gap: "20px",
-            }}
-          >
-
-            <div style={cardStyle}>
-              <div style={iconCircle("#007bff20")}>📁</div>
-              <div>
-                <div style={kpiLabel}>OTs abiertas</div>
-                <div style={kpiValue}>{kpis.otsAbiertas}</div>
-              </div>
-            </div>
-
-            <div style={cardStyle}>
-              <div style={iconCircle("#ffca2c30")}>⏰</div>
-              <div>
-                <div style={kpiLabel}>Alertas próximas</div>
-                <div style={kpiValue}>{kpis.alertasProximas}</div>
-              </div>
-            </div>
-
-            <div style={cardStyle}>
-              <div style={iconCircle("#00C49F30")}>✅</div>
-              <div>
-                <div style={kpiLabel}>Cumplimiento</div>
-                <div style={kpiValue}>{kpis.cumplimiento}%</div>
-              </div>
-            </div>
-
-            <div style={cardStyle}>
-              <div style={iconCircle("#6f42c130")}>📅</div>
-              <div>
-                <div style={kpiLabel}>Tiempo medio</div>
-                <div style={kpiValue}>{kpis.tiempoMedio} días</div>
-              </div>
-            </div>
-
+          {/* KPI CARDS */}
+          <div className="row g-4 mb-4">
+            <KpiCard 
+                title="OTs Pendientes" 
+                value={kpis.otsAbiertas} 
+                icon="bi-hourglass-split" 
+                color="warning" 
+                subtext="Órdenes activas"
+            />
+            <KpiCard 
+                title="OTs Vencidas" 
+                value={kpis.alertasProximas} 
+                icon="bi-exclamation-octagon" 
+                color="danger" 
+                subtext="Fecha prog. pasada"
+            />
+            <KpiCard 
+                title="Tasa de Cierre" 
+                value={`${kpis.cumplimiento}%`} 
+                icon="bi-pie-chart" 
+                color="success" 
+                subtext="% de OTs completadas"
+            />
+            <KpiCard 
+                title="Costo Promedio" 
+                value={`$${kpis.tiempoMedio}`} 
+                icon="bi-cash-coin" 
+                color="info" 
+                subtext="Por Orden de Trabajo"
+            />
           </div>
 
-          {/* ------------------- GRÁFICOS ------------------- */}
-          <div className="row" style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
-
-            <div style={chartCard}>
-              <h6 style={chartTitle}>Cumplimiento global</h6>
-              <Doughnut data={dataCumplimiento} />
+          {/* GRÁFICOS */}
+          <div className="row g-4">
+            <div className="col-lg-8">
+                <div className="card bg-dark border border-secondary shadow-lg rounded-4 h-100">
+                    <div className="card-header bg-transparent border-bottom border-secondary py-3">
+                        <h5 className="text-white mb-0">
+                            <i className="bi bi-bar-chart-line-fill me-2 text-primary"></i>
+                            Activos con más Mantenimientos
+                        </h5>
+                    </div>
+                    <div className="card-body" style={{ height: '300px' }}>
+                        <Bar data={dataTopActivos} options={commonOptions} />
+                    </div>
+                </div>
             </div>
 
-            <div style={{ ...chartCard, flex: 2 }}>
-              <h6 style={chartTitle}>OTs por activo</h6>
-              <Bar data={dataTopActivos} />
+            <div className="col-lg-4">
+                <div className="card bg-dark border border-secondary shadow-lg rounded-4 h-100">
+                    <div className="card-header bg-transparent border-bottom border-secondary py-3">
+                        <h5 className="text-white mb-0">
+                            <i className="bi bi-activity me-2 text-success"></i>
+                            Eficiencia Global
+                        </h5>
+                    </div>
+                    <div className="card-body d-flex flex-column justify-content-center align-items-center" style={{ height: '300px' }}>
+                        <div style={{ width: '100%', height: '80%' }}>
+                            <Doughnut data={dataCumplimiento} options={doughnutOptions} />
+                        </div>
+                        <div className="mt-2 text-center">
+                            <span className="text-white fw-bold fs-4">{kpis.cumplimiento}%</span>
+                            <br/>
+                            <span className="text-secondary small">Eficiencia de cierre</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-
           </div>
-
         </>
       )}
     </div>
   );
 }
-
-/* ---------------------- ESTILOS ---------------------- */
-const cardStyle = {
-  background: "#ffffff",
-  padding: "20px",
-  borderRadius: "15px",
-  boxShadow: "0 4px 12px rgba(0,0,0,0.10)",
-  display: "flex",
-  alignItems: "center",
-  gap: "15px",
-};
-
-const iconCircle = (bg) => ({
-  background: bg,
-  padding: "12px",
-  borderRadius: "50%",
-  fontSize: "20px"
-});
-
-const kpiLabel = {
-  fontSize: "15px",
-  color: "#555",
-  fontWeight: "500"
-};
-
-const kpiValue = {
-  fontSize: "26px",
-  color: "#111",
-  fontWeight: "800"
-};
-
-const chartCard = {
-  background: "#fff",
-  padding: "20px",
-  borderRadius: "15px",
-  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-  flex: 1
-};
-
-const chartTitle = {
-  fontSize: "18px",
-  fontWeight: "700",
-  marginBottom: "10px",
-  color: "#0d6efd"
-};

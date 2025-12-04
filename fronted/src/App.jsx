@@ -16,8 +16,9 @@ import EditarPlan from "./pages/RF02_Planes/RF02_EditarPlan.jsx";
 
 // RF03 - OT
 import OTs from "./pages/RF03_OT/RF03_OTs.jsx";
-import OTForm from "./components/RF03_OTForm.jsx";
+// import OTForm from "./components/RF03_OTForm.jsx"; // Ya no lo usamos directamente en rutas
 import EscanerMovil from "./pages/RF03_OT/RF03_Escaneo.jsx";
+import CrearOT from './pages/RF03_OT/RF03_CrearOT.jsx'; // Importamos la NUEVA página contenedora
 
 // RF04 - Tareas
 import Tareas from "./pages/RF04_Tareas/RF04_ListaTareas.jsx";
@@ -131,20 +132,22 @@ function App() {
         }
       />
 
+      {/* ✅ AQUÍ ESTABA EL ERROR: Cambiamos OTForm por CrearOT */}
       <Route
         path="/ordenes_trabajo/nuevo"
         element={
           <RoleRoute allowed={["admin", "mecanico"]}>
-            <OTForm />
+            <CrearOT /> 
           </RoleRoute>
         }
       />
 
+      {/* ✅ AQUÍ TAMBIÉN: Usamos CrearOT para editar porque reutiliza el formulario */}
       <Route
         path="/ordenes_trabajo/editar/:id"
         element={
           <RoleRoute allowed={["admin", "mecanico"]}>
-            <OTForm />
+            <CrearOT />
           </RoleRoute>
         }
       />
@@ -196,7 +199,7 @@ function App() {
         }
       />
 
-      {/* RUTA NO ENCONTRADA */}
+      {/* RUTA NO ENCONTRADA (Debe ser siempre la última) */}
       <Route path="*" element={<Navigate to="/login" />} />
 
     </Routes>

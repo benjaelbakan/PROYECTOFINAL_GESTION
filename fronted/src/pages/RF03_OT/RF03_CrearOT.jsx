@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import ActivoForm from "../../components/RF01_ActivoForm.jsx";
+import OTForm from "../../components/RF03_OTForm.jsx"; // Asegúrate de que la ruta sea correcta
 
-export default function CrearActivo() {
+export default function CrearOT() {
   const navigate = useNavigate();
 
   return (
@@ -9,34 +9,34 @@ export default function CrearActivo() {
       <div className="row justify-content-center">
         <div className="col-12 col-lg-8">
             
-          {/* --- BOTÓN VOLVER (NUEVO) --- */}
+          {/* Botón Volver */}
           <div className="mb-3">
             <button 
                 className="btn btn-outline-secondary d-inline-flex align-items-center gap-2 text-white-50 hover-white"
-                onClick={() => navigate('/activos')}
+                onClick={() => navigate('/ordenes_trabajo')}
             >
                 <i className="bi bi-arrow-left"></i>
-                Volver al listado
+                Volver a Órdenes
             </button>
           </div>
 
-          {/* Tarjeta contenedora con estilo oscuro moderno */}
+          {/* Tarjeta contenedora */}
           <div className="card bg-dark border border-secondary shadow-lg rounded-4">
             
             {/* Encabezado de la tarjeta */}
             <div className="card-header bg-transparent border-bottom border-secondary p-4">
                 <h3 className="text-white mb-0 d-flex align-items-center gap-2">
-                    <i className="bi bi-plus-circle-dotted text-success"></i>
-                    Registro de Nuevo Activo
+                    <i className="bi bi-clipboard-check text-primary"></i>
+                    Gestión de Orden de Trabajo
                 </h3>
                 <p className="text-secondary small mb-0 mt-1">
-                    Complete la información técnica para dar de alta un equipo o vehículo.
+                    Complete los detalles para programar o actualizar un mantenimiento.
                 </p>
             </div>
 
             {/* Cuerpo con el formulario */}
             <div className="card-body p-4">
-              <ActivoForm />
+              <OTForm />
             </div>
 
           </div>
